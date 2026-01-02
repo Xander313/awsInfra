@@ -138,7 +138,7 @@
             <div class="flex items-center gap-2">
                 <button type="button"
                         @click="toggleSidebar()"
-                        class="p-2 hover:bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="md:hidden p-2 hover:bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         aria-label="Abrir/cerrar menú">
                     {{-- Icono hamburguesa / X --}}
                     <svg x-show="!sidebarOpen" class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,6 +148,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
+
 
                 <div class="flex items-center space-x-2">
                     <h1 class="text-lg font-bold text-gray-900 tracking-tight">SGPD</h1>
