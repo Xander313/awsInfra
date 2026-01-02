@@ -1,34 +1,31 @@
 {{-- resources/views/layouts/app.blade.php --}}
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
-
-<script src="https://code.jquery.com/jquery-3.7.1.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <head>
-
-       <!-- Bootstrap CSS -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<!-- Bootstrap Icons -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>@yield('title', 'SGPD COAC - Sistema de Gestión de Protección de Datos')</title>
 
-    {{-- Tipografía global (elige una; aquí uso Montserrat por estética institucional) --}}
+    {{-- Librerías (mantengo las que ya usas) --}}
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    {{-- Bootstrap CSS + Icons --}}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
+    {{-- Tipografía global --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    {{-- ✅ Opción A (simple): Tailwind por CDN --}}
+    {{-- Tailwind por CDN --}}
     <script src="https://cdn.tailwindcss.com"></script>
 
-    {{-- ✅ Opción B (pro): Vite (descomenta cuando tengan Tailwind compilado) --}}
+    {{-- Opción B (pro): Vite (descomenta cuando tengan Tailwind compilado) --}}
     {{--
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     --}}
@@ -62,20 +59,25 @@
 <body class="bg-gray-50 text-gray-800">
 @php
     // Navegación base (el equipo puede editar labels/urls sin tocar el layout)
+    // Nota: si una ruta aún no existe en el proyecto, Laravel lanzará excepción.
+    // Si prefieres "no romper" mientras desarrollan módulos, dime y te lo dejo con Route::has().
     $nav = [
         [
+            'key' => 'dashboard',
             'label' => 'Dashboard',
             'items' => [
                 ['label' => 'Inicio', 'href' => route('dashboard'), 'key' => 'dashboard'],
             ],
         ],
         [
+            'key' => 'core',
             'label' => 'CORE',
             'items' => [
                 ['label' => 'Organizaciones', 'href' => route('orgs.index'), 'key' => 'org'],
             ],
         ],
         [
+            'key' => 'iam',
             'label' => 'IAM',
             'items' => [
                 ['label' => 'Usuarios', 'href' => route('users.index'), 'key' => 'users'],
@@ -84,6 +86,7 @@
             ],
         ],
         [
+            'key' => 'privacy',
             'label' => 'PRIVACY',
             'items' => [
                 ['label' => 'Catálogos (Base)', 'href' => route('privacy.data_category.index'), 'key' => 'privacy_catalogs'],
@@ -96,16 +99,17 @@
             ],
         ],
         [
+            'key' => 'risk_audit',
             'label' => 'RISK & AUDIT',
             'items' => [
                 ['label' => 'Riesgos', 'href' => url('/risk/ui/risks'), 'key' => 'risks'],
                 ['label' => 'DPIA', 'href' => url('/risk/ui/dpias'), 'key' => 'dpia'],
                 [
                     'label' => 'Auditoría',
-                    'href' => "#",
+                    'href' => '#',
                     'key' => 'audits',
                     'submenu' => [
-                        ['label' => 'Auditorias', 'href' => route('audits.index'), 'key' => 'audits'],
+                        ['label' => 'Auditorías', 'href' => route('audits.index'), 'key' => 'audits'],
                         ['label' => 'Controles', 'href' => route('controls.index'), 'key' => 'controls'],
                         ['label' => 'Hallazgos', 'href' => route('findings.index'), 'key' => 'findings'],
                         ['label' => 'Acciones Correctivas', 'href' => route('corrective_actions.index'), 'key' => 'corrective_actions'],
@@ -114,18 +118,19 @@
             ],
         ],
         [
+            'key' => 'training',
             'label' => 'TRAINING',
             'items' => [
                 ['label' => 'Paises', 'href' => route('privacy.country.index'), 'key' => 'country'],
                 ['label' => 'Asignaciones', 'href' => '/training/assignments', 'key' => 'assignments'],
                 ['label' => 'Resultados',   'href' => '/training/results',    'key' => 'results'],
-
             ],
         ],
     ];
 @endphp
 
 <div x-data="sgpdLayout()" x-cloak @keydown.escape.window="closeAll()" class="min-h-screen">
+
     {{-- HEADER --}}
     <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div class="flex items-center justify-between px-4 py-3">
@@ -156,7 +161,7 @@
                 <div class="relative">
                     <button
                         type="button"
-                        @click="showNotifications = !showNotifications; loadRealNotifications()"
+                        @click="showNotifications = !showNotifications; if(showNotifications){ loadRealNotifications() }"
                         class="relative p-2 hover:bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         aria-label="Notificaciones">
                         <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,18 +182,17 @@
                             <h3 class="font-semibold text-gray-900">Notificaciones del Sistema</h3>
                             <p class="text-xs text-gray-500 mt-0.5" x-text="`${notificationCount} alertas pendientes`"></p>
                         </div>
-                        
-                        <!-- CONTENEDOR DONDE SE MOSTRARÁN LAS NOTIFICACIONES REALES -->
+
+                        {{-- Contenedor donde se muestran las notificaciones reales --}}
                         <div id="realNotifications" class="divide-y divide-gray-100 max-h-80 overflow-y-auto">
-                            <!-- Las notificaciones se cargarán aquí dinámicamente -->
                             <div x-show="loadingNotifications" class="p-6 text-center">
                                 <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                                 <p class="text-sm text-gray-500 mt-2">Cargando notificaciones...</p>
                             </div>
                         </div>
-                        
+
                         <div class="p-3 border-t border-gray-100 bg-gray-50">
-                            <button @click="markAllAsRead()" class="text-xs text-blue-600 hover:text-blue-800">
+                            <button type="button" @click="markAllAsRead()" class="text-xs text-blue-600 hover:text-blue-800">
                                 Marcar todas como leídas
                             </button>
                             <a href="{{ route('dashboard') }}" class="text-xs text-gray-600 hover:text-gray-800 ml-3">
@@ -226,17 +230,11 @@
     </header>
 
     {{-- SIDEBAR + OVERLAY (mobile) --}}
-    <div x-show="sidebarOpen" x-transition.opacity class="fixed inset-0 z-30 bg-black/50 md:hidden" @click="sidebarOpen = false"></div>
+    <div x-show="sidebarOpen && isMobile()" x-transition.opacity class="fixed inset-0 z-30 bg-black/50 md:hidden" @click="sidebarOpen = false"></div>
 
-    {{--
-        FIX DE DISPOSICIÓN (DESKTOP):
-        - El MAIN usa md:ml-72 para dejar espacio al sidebar.
-        - Por lo tanto, el SIDEBAR en desktop debe quedarse "fixed" (fuera del flujo),
-          y solo bajarse con md:top-16 para no quedar debajo del header sticky.
-        - Si lo pones md:static, empuja el contenido + además ml-72 => doble espacio (contenido al centro).
-    --}}
+    {{-- SIDEBAR --}}
     <aside
-        class="fixed z-40 left-0 top-0 bottom-0 w-72 bg-white border-r border-gray-200 shadow-xl md:shadow-none flex flex-col md:top-16"
+        class="fixed z-40 left-0 top-16 w-72 bg-white border-r border-gray-200 shadow-xl md:shadow-none flex flex-col h-[calc(100vh-64px)]"
         :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
         style="transition: transform 280ms ease-out;">
 
@@ -256,59 +254,82 @@
             </div>
         </div>
 
-        {{-- Sidebar nav --}}
-        <nav class="p-4 overflow-y-auto flex-1 space-y-5">
-            @foreach($nav as $section)
-                <div>
-                    <div class="text-[11px] uppercase tracking-wider text-gray-400 font-semibold px-2 mb-2">
-                        {{ $section['label'] }}
-                    </div>
+        {{-- Sidebar nav (secciones colapsables) --}}
+        <nav class="p-3 overflow-y-auto flex-1">
+            <div class="space-y-2">
+                @foreach($nav as $section)
+                    <div class="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                        {{-- Encabezado sección (dropdown) --}}
+                        <button type="button"
+                                @click="toggleSection('{{ $section['key'] }}')"
+                                class="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-50">
+                            <span class="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">
+                                {{ $section['label'] }}
+                            </span>
 
-                    <div class="space-y-1">
-                        @foreach($section['items'] as $item)
-                            <div x-data="{ open: false }">
-                                {{-- Item principal --}}
-                                <a href="{{ $item['href'] }}"
-                                @click="if (isMobile()) sidebarOpen = false; open = !open"
-                                class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-50 text-gray-700"
-                                :class="activeKey === '{{ $item['key'] }}' ? 'bg-blue-50 text-blue-700 border border-blue-100' : ''">
-                                    <span class="truncate">{{ $item['label'] }}</span>
+                            <svg class="w-4 h-4 text-gray-400 transition-transform"
+                                 :class="isSectionOpen('{{ $section['key'] }}') ? 'rotate-90' : ''"
+                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
 
-                                    {{-- Icono de flecha solo si hay submenu --}}
+                        {{-- Items --}}
+                        <div x-show="isSectionOpen('{{ $section['key'] }}')" x-transition class="px-2 pb-2">
+                            <div class="space-y-1">
+                                @foreach($section['items'] as $item)
+                                    {{-- Item con submenu --}}
                                     @if(isset($item['submenu']))
-                                        <svg :class="{'rotate-90': open}" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                        </svg>
+                                        <div class="rounded-lg border border-gray-200 bg-gray-50/60 overflow-hidden">
+                                            <button type="button"
+                                                    @click="toggleSubmenu('{{ $item['key'] }}')"
+                                                    class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50">
+                                                <span class="truncate">{{ $item['label'] }}</span>
+                                                <svg class="w-4 h-4 text-gray-400 transition-transform"
+                                                     :class="isSubmenuOpen('{{ $item['key'] }}') ? 'rotate-90' : ''"
+                                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </button>
+
+                                            <div x-show="isSubmenuOpen('{{ $item['key'] }}')" x-transition class="px-2 pb-2">
+                                                <div class="space-y-1">
+                                                    @foreach($item['submenu'] as $sub)
+                                                        <a href="{{ $sub['href'] }}"
+                                                           @click="if (isMobile()) sidebarOpen = false"
+                                                           class="block px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100"
+                                                           :class="activeKey === '{{ $sub['key'] }}' ? 'bg-blue-50 text-blue-700 border border-blue-100' : ''">
+                                                            {{ $sub['label'] }}
+                                                        </a>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        {{-- Item normal --}}
+                                        <a href="{{ $item['href'] }}"
+                                           @click="if (isMobile()) sidebarOpen = false"
+                                           class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-50 text-gray-700"
+                                           :class="activeKey === '{{ $item['key'] }}' ? 'bg-blue-50 text-blue-700 border border-blue-100' : ''">
+                                            <span class="truncate">{{ $item['label'] }}</span>
+                                            <svg x-show="activeKey === '{{ $item['key'] }}'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </a>
                                     @endif
-                                </a>
-
-                                {{-- Submenu --}}
-                                @if(isset($item['submenu']))
-                                    <ul x-show="open" x-collapse class="pl-4 mt-1 space-y-1">
-                                        @foreach($item['submenu'] as $sub)
-                                            <li>
-                                                <a href="{{ $sub['href'] }}"
-                                                @click="if (isMobile()) sidebarOpen = false"
-                                                class="block px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                                                :class="activeKey === '{{ $sub['key'] }}' ? 'bg-blue-50 text-blue-700 border border-blue-100' : ''">
-                                                    {{ $sub['label'] }}
-                                                </a>
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                @endif
+                                @endforeach
                             </div>
-                        @endforeach
+                        </div>
                     </div>
-                </div>
-            @endforeach
+                @endforeach
 
-            {{-- Zona libre para que cada módulo agregue accesos directos --}}
-            @hasSection('sidebar_extra')
-                <div class="pt-4 border-t border-gray-100">
-                    @yield('sidebar_extra')
-                </div>
-            @endif
+                {{-- Zona libre para que cada módulo agregue accesos directos --}}
+                @hasSection('sidebar_extra')
+                    <div class="pt-3">
+                        @yield('sidebar_extra')
+                    </div>
+                @endif
+            </div>
         </nav>
 
         {{-- Sidebar footer --}}
@@ -327,10 +348,9 @@
 
     {{-- MAIN --}}
     <div class="md:ml-72">
-        {{-- Page container --}}
         <main class="px-4 sm:px-6 lg:px-8 py-6 pb-24">
 
-            {{-- Flash messages --}}
+            {{-- Flash messages (bloques clásicos) --}}
             @if (session('success'))
                 <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                     {{ session('success') }}
@@ -341,7 +361,6 @@
                     {{ session('error') }}
                 </div>
             @endif
-            
 
             {{-- Encabezado de página (opcional) --}}
             @hasSection('page_header')
@@ -355,7 +374,6 @@
                 </div>
             @endif
 
-            {{-- Contenido de cada pantalla --}}
             @yield('content')
         </main>
 
@@ -374,205 +392,284 @@
             </div>
         </footer>
     </div>
+
+    {{-- Safelist mínimo para Tailwind Play CDN (clases usadas en strings JS) --}}
+    <div class="hidden border-red-500 border-yellow-500 border-blue-500 bg-red-100 bg-yellow-100 bg-blue-100 text-red-800 text-yellow-800 text-blue-800"></div>
 </div>
 
-{{-- Alpine.js (si no lo compilan por Vite) --}}
+{{-- Alpine.js + (opcional) collapse plugin --}}
+<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
 <script>
     function sgpdLayout() {
-    return {
-        sidebarOpen: false,
-        showNotifications: false,
-        hoverKey: null,
-        loadingNotifications: false,
-        notificationCount: 0,
+        return {
+            sidebarOpen: false,
+            showNotifications: false,
+            hoverKey: null,
 
-        activeKey: '{{ trim($__env->yieldContent('active_key')) ?: 'dashboard' }}',
+            loadingNotifications: false,
+            notificationCount: 0,
+            notifications: [],
 
-        notifications: [], // Ahora vacío, se cargará dinámicamente
+            // Sección activa de menú (cada vista setea: @section('active_key','rat'))
+            activeKey: '{{ trim($__env->yieldContent('active_key')) ?: 'dashboard' }}',
 
-        toggleSidebar() {
-            this.sidebarOpen = !this.sidebarOpen;
-            this.showNotifications = false;
-        },
+            // Secciones / submenus abiertos
+            openSections: {},
+            openSubmenus: {},
 
-        closeAll() {
-            this.sidebarOpen = false;
-            this.showNotifications = false;
-        },
+            init() {
+                // Abrir por defecto la sección que contenga el activeKey
+                const sectionKey = this.findSectionForActiveKey(this.activeKey);
+                if (sectionKey) this.openSections[sectionKey] = true;
 
-        isMobile() {
-            return window.matchMedia('(max-width: 767px)').matches;
-        },
+                // Si activeKey pertenece a un submenu (ej. controls), abrir submenu padre
+                const submenuKey = this.findSubmenuForActiveKey(this.activeKey);
+                if (submenuKey) this.openSubmenus[submenuKey] = true;
 
-        // Cargar notificaciones reales desde el dashboard
-        async loadRealNotifications() {
-            if (this.loadingNotifications) return;
-            
-            this.loadingNotifications = true;
-            try {
-                const response = await fetch('/api/dashboard/alerts');
-                const alerts = await response.json();
-                
-                this.notifications = alerts.map(alert => ({
-                    id: alert.id,
-                    title: alert.title,
-                    type: alert.type,
-                    priority: alert.priority,
-                    due_at: alert.due_at,
-                    time: this.formatTimeAgo(alert.due_at)
-                }));
-                
-                this.notificationCount = this.notifications.length;
-                this.renderNotifications();
-            } catch (error) {
-                console.error('Error cargando notificaciones:', error);
+                // Puedes cargar contador inicial si quieres (opcional):
+                // this.loadRealNotifications();
+            },
+
+            toggleSidebar() {
+                this.sidebarOpen = !this.sidebarOpen;
+                this.showNotifications = false;
+            },
+
+            closeAll() {
+                this.sidebarOpen = false;
+                this.showNotifications = false;
+            },
+
+            isMobile() {
+                return window.matchMedia('(max-width: 767px)').matches;
+            },
+
+            // ------- Sidebar: secciones colapsables -------
+            toggleSection(key) {
+                this.openSections[key] = !this.openSections[key];
+            },
+
+            isSectionOpen(key) {
+                return !!this.openSections[key];
+            },
+
+            // ------- Sidebar: submenus (Auditoría) -------
+            toggleSubmenu(key) {
+                this.openSubmenus[key] = !this.openSubmenus[key];
+            },
+
+            isSubmenuOpen(key) {
+                return !!this.openSubmenus[key];
+            },
+
+            findSectionForActiveKey(activeKey) {
+                const nav = @json($nav);
+                for (const section of nav) {
+                    for (const item of (section.items || [])) {
+                        if (item.key === activeKey) return section.key;
+                        if (item.submenu) {
+                            for (const sub of item.submenu) {
+                                if (sub.key === activeKey) return section.key;
+                            }
+                        }
+                    }
+                }
+                return null;
+            },
+
+            findSubmenuForActiveKey(activeKey) {
+                const nav = @json($nav);
+                for (const section of nav) {
+                    for (const item of (section.items || [])) {
+                        if (item.submenu) {
+                            for (const sub of item.submenu) {
+                                if (sub.key === activeKey) return item.key; // key del submenu padre
+                            }
+                        }
+                    }
+                }
+                return null;
+            },
+
+            // ------- Notificaciones -------
+            async loadRealNotifications() {
+                if (this.loadingNotifications) return;
+
+                this.loadingNotifications = true;
+                try {
+                    const response = await fetch('/api/dashboard/alerts', { headers: { 'Accept': 'application/json' } });
+                    const alerts = await response.json();
+
+                    this.notifications = (alerts || []).map(alert => ({
+                        id: alert.id,
+                        title: alert.title,
+                        type: alert.type,
+                        priority: alert.priority,
+                        due_at: alert.due_at,
+                        time: this.formatTimeAgo(alert.due_at)
+                    }));
+
+                    this.notificationCount = this.notifications.length;
+                    this.renderNotifications();
+                } catch (error) {
+                    console.error('Error cargando notificaciones:', error);
+                    this.notifications = [];
+                    this.notificationCount = 0;
+                    this.renderNotifications();
+                } finally {
+                    this.loadingNotifications = false;
+                }
+            },
+
+            formatTimeAgo(dateString) {
+                if (!dateString) return '';
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return '';
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                if (diffMins < 1) return 'ahora mismo';
+                if (diffMins < 60) return `hace ${diffMins} min`;
+                if (diffHours < 24) return `hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+                return `hace ${diffDays} día${diffDays > 1 ? 's' : ''}`;
+            },
+
+            renderNotifications() {
+                const container = document.getElementById('realNotifications');
+                if (!container) return;
+
+                container.innerHTML = '';
+
+                if (this.loadingNotifications) {
+                    container.innerHTML = `
+                        <div class="p-6 text-center">
+                            <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                            <p class="text-sm text-gray-500 mt-2">Cargando notificaciones...</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (this.notifications.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-6 text-center text-sm text-gray-500">
+                            <svg class="w-12 h-12 mx-auto text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p>No hay notificaciones pendientes</p>
+                            <p class="text-xs text-gray-400 mt-1">Las notificaciones se sincronizan con las alertas del dashboard</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                this.notifications.forEach(notif => {
+                    let priorityColor = 'blue';
+                    let priorityText = 'Baja';
+
+                    if (notif.priority === 'high') { priorityColor = 'red'; priorityText = 'Alta'; }
+                    else if (notif.priority === 'medium') { priorityColor = 'yellow'; priorityText = 'Media'; }
+
+                    html += `
+                        <div class="p-4 hover:bg-gray-50 cursor-pointer border-l-4 border-${priorityColor}-500">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-gray-900">${notif.title ?? ''}</p>
+                                    <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                        <span class="text-xs px-2 py-0.5 bg-${priorityColor}-100 text-${priorityColor}-800 rounded-full">
+                                            ${notif.type ?? ''}
+                                        </span>
+                                        <span class="text-xs px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full">
+                                            ${priorityText}
+                                        </span>
+                                        <span class="text-xs text-gray-500">${notif.time ?? ''}</span>
+                                    </div>
+                                </div>
+                                <button type="button" class="text-gray-400 hover:text-gray-600 ml-2" data-notif-id="${notif.id}" title="Eliminar notificación">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+
+                // Bind de botones eliminar (porque el HTML se inyecta)
+                container.querySelectorAll('button[data-notif-id]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const id = btn.getAttribute('data-notif-id');
+                        this.removeNotification(Number(id));
+                    });
+                });
+            },
+
+            async markAllAsRead() {
                 this.notifications = [];
                 this.notificationCount = 0;
-            } finally {
-                this.loadingNotifications = false;
-            }
-        },
+                this.renderNotifications();
 
-        // Formatear tiempo relativo
-        formatTimeAgo(dateString) {
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
-
-            if (diffMins < 1) return 'ahora mismo';
-            if (diffMins < 60) return `hace ${diffMins} min`;
-            if (diffHours < 24) return `hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
-            return `hace ${diffDays} día${diffDays > 1 ? 's' : ''}`;
-        },
-
-        // Renderizar notificaciones en el dropdown
-        // Renderizar notificaciones en el dropdown
-        renderNotifications() {
-            const container = document.getElementById('realNotifications');
-            if (!container) {
-                console.error('No se encontró el contenedor de notificaciones');
-                return;
-            }
-
-            // Limpiar contenido previo
-            container.innerHTML = '';
-
-            if (this.notifications.length === 0) {
-                container.innerHTML = `
-                    <div class="p-6 text-center text-sm text-gray-500">
-                        <svg class="w-12 h-12 mx-auto text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <p>No hay notificaciones pendientes</p>
-                        <p class="text-xs text-gray-400 mt-1">Las notificaciones se sincronizan con las alertas del dashboard</p>
-                    </div>
-                `;
-                return;
-            }
-
-            let html = '';
-            this.notifications.forEach(notif => {
-                // Determinar color basado en prioridad
-                let priorityColor, priorityText;
-                if (notif.priority === 'high') {
-                    priorityColor = 'red';
-                    priorityText = 'Alta';
-                } else if (notif.priority === 'medium') {
-                    priorityColor = 'yellow';
-                    priorityText = 'Media';
-                } else {
-                    priorityColor = 'blue';
-                    priorityText = 'Baja';
+                // Opcional: backend
+                try {
+                    await fetch('/api/notifications/mark-read', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Accept': 'application/json'
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error marcando notificaciones:', error);
                 }
-                
-                html += `
-                    <div class="p-4 hover:bg-gray-50 cursor-pointer border-l-4 border-${priorityColor}-500">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <p class="text-sm font-medium text-gray-900">${notif.title}</p>
-                                <div class="flex items-center gap-2 mt-1">
-                                    <span class="text-xs px-2 py-0.5 bg-${priorityColor}-100 text-${priorityColor}-800 rounded-full">
-                                        ${notif.type}
-                                    </span>
-                                    <span class="text-xs px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full">
-                                        ${priorityText}
-                                    </span>
-                                    <span class="text-xs text-gray-500">${notif.time}</span>
-                                </div>
-                            </div>
-                            <button class="text-gray-400 hover:text-gray-600 ml-2" 
-                                    @click="removeNotification(${notif.id})"
-                                    title="Eliminar notificación">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
+            },
 
-            container.innerHTML = html;
-        },
-
-        // Marcar todas como leídas
-        async markAllAsRead() {
-            this.notifications = [];
-            this.notificationCount = 0;
-            this.renderNotifications();
-            
-            // Aquí podrías hacer una llamada API para marcar como leídas en el backend
-            try {
-                await fetch('/api/notifications/mark-read', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    }
-                });
-            } catch (error) {
-                console.error('Error marcando notificaciones:', error);
+            removeNotification(id) {
+                this.notifications = this.notifications.filter(n => n.id !== id);
+                this.notificationCount = this.notifications.length;
+                this.renderNotifications();
             }
-        },
-
-        // Eliminar una notificación
-        removeNotification(id) {
-            this.notifications = this.notifications.filter(n => n.id !== id);
-            this.notificationCount = this.notifications.length;
-            this.renderNotifications();
         }
     }
-}
 </script>
+
+{{-- Toasts (SweetAlert) --}}
 <script>
 @if(session('success'))
     Swal.fire({
-        toast: true,                     // Habilita modo "toast"
-        position: 'bottom-start',        // Esquina inferior izquierda
-        icon: 'success',                 // Icono: success, error, warning, info
-        title: "{{ session('success') }}",
-        showConfirmButton: false,        // Sin botón
-        timer: 3000,                     // Duración en ms
+        toast: true,
+        position: 'bottom-start',
+        icon: 'success',
+        title: @json(session('success')),
+        showConfirmButton: false,
+        timer: 3000,
         timerProgressBar: true
     });
 @endif
-    @if(session('error'))
-        Swal.fire({
-            toast: true,
-            position: 'bottom-start',
-            icon: 'error',
-            title: "{{ session('error') }}",
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true
-        });
-    @endif
+
+@if(session('error'))
+    Swal.fire({
+        toast: true,
+        position: 'bottom-start',
+        icon: 'error',
+        title: @json(session('error')),
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+    });
+@endif
 </script>
+
 @stack('scripts')
 </body>
 </html>

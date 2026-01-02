@@ -25,8 +25,9 @@ use App\Http\Controllers\Document\DocumentController;
 use App\Http\Controllers\Privacy\CountryController;
 
 Route::get('/', function () {
-    return view('core/extencion');
+    return redirect()->route('dashboard');
 });
+
 
 // Dashboard Routes - SIN middleware
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
