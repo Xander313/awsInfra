@@ -369,10 +369,7 @@
                     @yield('page_header')
                 </div>
             @else
-                <div class="mb-5">
-                    <h2 class="text-xl font-bold text-gray-900">@yield('h1', 'Panel')</h2>
-                    <p class="text-sm text-gray-500">@yield('subtitle', 'Bienvenido al sistema')</p>
-                </div>
+
             @endif
 
             @yield('content')
