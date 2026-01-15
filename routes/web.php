@@ -2,6 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Privacy\ProcessingActivityController;
+
+// rutas para auth
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterController;
+
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Core\OrgController;
 use App\Http\Controllers\Privacy\DataSubjectController;
@@ -25,144 +30,161 @@ use App\Http\Controllers\Document\DocumentController;
 use App\Http\Controllers\Privacy\CountryController;
 
 Route::get('/', function () {
-    return redirect()->route('dashboard');
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
 });
 
-
-// Dashboard Routes - SIN middleware
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-Route::get('/api/dashboard/kpis', [DashboardController::class, 'apiKPIs'])->name('dashboard.api.kpis');
-Route::get('/api/dashboard/alerts', [DashboardController::class, 'apiAlerts'])->name('dashboard.api.alerts');
-Route::get('/api/dashboard/activity', [DashboardController::class, 'apiRecentActivity'])->name('dashboard.api.activity');
-
-// ✅ NUEVA RUTA AGREGADA (SOLO ESTA)
-Route::get('/api/dashboard/modal-data/{type}', [DashboardController::class, 'apiModalData'])->name('dashboard.api.modal-data');
-
-// RAT Routes
-Route::resource('rat', ProcessingActivityController::class);
-
-// Org Routes
-Route::post('/orgs/check-ruc', [OrgController::class, 'checkRuc'])->name('orgs.check-ruc');
-Route::get('/org/select/{org}', function ($orgId) {
-    session(['org_id' => $orgId]);
-    return redirect()->back()->with('success', 'Organización activada.');
-})->name('orgs.select');
-Route::resource('orgs', OrgController::class);
-
-// Data Subjects Routes
-Route::resource('data-subjects', DataSubjectController::class);
-Route::get('/data-subjects/{dataSubject}/consent/create', [DataSubjectController::class, 'createConsent'])
-    ->name('data-subjects.consent.create');
-Route::post('/data-subjects/{dataSubject}/consent', [DataSubjectController::class, 'storeConsent'])
-    ->name('data-subjects.consent.store');
-Route::post('/consent/{consent}/revoke', [DataSubjectController::class, 'revokeConsent'])
-    ->name('data-subjects.consent.revoke');
-
-// Risk routes
-require __DIR__.'/risk.php';
-
-// Audit Routes
-Route::prefix('audit')->group(function(){
-    Route::resource('audits', AuditController::class);
-    Route::post('audits/{audit}/change-status', [AuditController::class, 'changeStatus'])->name('audits.changeStatus');
-    Route::resource('controls', ControlController::class);
-    Route::resource('findings', AuditFindingController::class);
-    Route::post('/findings/{finding}/change-status', [AuditFindingController::class, 'changeStatus'])->name('findings.changeStatus');
-    Route::resource('corrective_actions', CorrectiveActionController::class);
-    Route::post('/corrective_actions/{action}/change-status', [CorrectiveActionController::class, 'changeStatus'])
-        ->name('corrective_actions.changeStatus');
+Route::middleware('guest')->group(function () {
+    // Login
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [LoginController::class, 'login'])->name('login.post');
     
+    // Registro
+    Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+    Route::post('/register', [RegisterController::class, 'register'])->name('register.post');
 });
 
-// DSAR Routes
-Route::resource('dsar', DsarRequestController::class)->except(['show', 'destroy']);
-Route::post('dsar/{dsar}/evidence', [DsarEvidenceController::class, 'store'])->name('dsar.evidence.store');
+// Logout (solo para usuarios autenticados)
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
 
-// Privacy Routes
+Route::middleware(['auth'])->group(function () {
+    // Dashboard Routes - SIN middleware
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/api/dashboard/kpis', [DashboardController::class, 'apiKPIs'])->name('dashboard.api.kpis');
+    Route::get('/api/dashboard/alerts', [DashboardController::class, 'apiAlerts'])->name('dashboard.api.alerts');
+    Route::get('/api/dashboard/activity', [DashboardController::class, 'apiRecentActivity'])->name('dashboard.api.activity');
+
+    // ✅ NUEVA RUTA AGREGADA (SOLO ESTA)
+    Route::get('/api/dashboard/modal-data/{type}', [DashboardController::class, 'apiModalData'])->name('dashboard.api.modal-data');
+
+    // RAT Routes
+    Route::resource('rat', ProcessingActivityController::class);
+
+    // Org Routes
+    Route::post('/orgs/check-ruc', [OrgController::class, 'checkRuc'])->name('orgs.check-ruc');
+    Route::get('/org/select/{org}', function ($orgId) {
+        session(['org_id' => $orgId]);
+        return redirect()->back()->with('success', 'Organización activada.');
+    })->name('orgs.select');
+    Route::resource('orgs', OrgController::class);
+
+    // Data Subjects Routes
+    Route::resource('data-subjects', DataSubjectController::class);
+    Route::get('/data-subjects/{dataSubject}/consent/create', [DataSubjectController::class, 'createConsent'])
+        ->name('data-subjects.consent.create');
+    Route::post('/data-subjects/{dataSubject}/consent', [DataSubjectController::class, 'storeConsent'])
+        ->name('data-subjects.consent.store');
+    Route::post('/consent/{consent}/revoke', [DataSubjectController::class, 'revokeConsent'])
+        ->name('data-subjects.consent.revoke');
+
+    // Risk routes
+    require __DIR__.'/risk.php';
+
+    // Audit Routes
+    Route::prefix('audit')->group(function(){
+        Route::resource('audits', AuditController::class);
+        Route::post('audits/{audit}/change-status', [AuditController::class, 'changeStatus'])->name('audits.changeStatus');
+        Route::resource('controls', ControlController::class);
+        Route::resource('findings', AuditFindingController::class);
+        Route::post('/findings/{finding}/change-status', [AuditFindingController::class, 'changeStatus'])->name('findings.changeStatus');
+        Route::resource('corrective_actions', CorrectiveActionController::class);
+        Route::post('/corrective_actions/{action}/change-status', [CorrectiveActionController::class, 'changeStatus'])
+            ->name('corrective_actions.changeStatus');
+        
+    });
+
+    // DSAR Routes
+    Route::resource('dsar', DsarRequestController::class)->except(['show', 'destroy']);
+    Route::post('dsar/{dsar}/evidence', [DsarEvidenceController::class, 'store'])->name('dsar.evidence.store');
+
+    // Privacy Routes
 
 
-Route::prefix('privacy')->name('privacy.')->group(function() {
-    Route::resource('data_category', DataCategoryController::class);
-});
+    Route::prefix('privacy')->name('privacy.')->group(function() {
+        Route::resource('data_category', DataCategoryController::class);
+    });
 
-// Rutas Fase 2
-Route::resource('users', UserController::class);
-Route::resource('roles', RoleController::class);
-Route::resource('permissions', PermissionController::class);
+    // Rutas Fase 2
+    Route::resource('users', UserController::class);
+    Route::resource('roles', RoleController::class);
+    Route::resource('permissions', PermissionController::class);
 
 
-//Ruras fase 4
+    //Ruras fase 4
 
-/*
-|--------------------------------------------------------------------------
-| Sistemas
-|--------------------------------------------------------------------------
-*/
-Route::prefix('systems')->name('systems.')->group(function () {
-    Route::get('/', [SystemController::class, 'index'])->name('index');
-    Route::get('/crear', [SystemController::class, 'create'])->name('create');
-    Route::post('/guardar', [SystemController::class, 'store'])->name('store');
-    Route::get('/{system}', [SystemController::class, 'show'])->name('show');
-    Route::get('/editar/{id}', [SystemController::class, 'edit'])->name('edit');
-    Route::put('/actualizar/{id}', [SystemController::class, 'update'])->name('update');
-    Route::delete('/eliminar/{id}', [SystemController::class, 'destroy'])->name('destroy');
+    /*
+    |--------------------------------------------------------------------------
+    | Sistemas
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('systems')->name('systems.')->group(function () {
+        Route::get('/', [SystemController::class, 'index'])->name('index');
+        Route::get('/crear', [SystemController::class, 'create'])->name('create');
+        Route::post('/guardar', [SystemController::class, 'store'])->name('store');
+        Route::get('/{system}', [SystemController::class, 'show'])->name('show');
+        Route::get('/editar/{id}', [SystemController::class, 'edit'])->name('edit');
+        Route::put('/actualizar/{id}', [SystemController::class, 'update'])->name('update');
+        Route::delete('/eliminar/{id}', [SystemController::class, 'destroy'])->name('destroy');
 
-    // Subrecurso: DataStores por sistema
-    Route::get('/{system}/data-stores', [DataStoreController::class, 'indexBySystem'])->name('data-stores.indexBySystem');
-});
+        // Subrecurso: DataStores por sistema
+        Route::get('/{system}/data-stores', [DataStoreController::class, 'indexBySystem'])->name('data-stores.indexBySystem');
+    });
 
-/*
-|--------------------------------------------------------------------------
-| Data Stores (CRUD general)
-|--------------------------------------------------------------------------
-*/
-Route::prefix('data-stores')->name('data-stores.')->group(function () {
-    Route::get('/', [DataStoreController::class, 'index'])->name('index');
-    Route::get('/crear', [DataStoreController::class, 'create'])->name('create');
-    Route::post('/guardar', [DataStoreController::class, 'store'])->name('store');
-    Route::get('/editar/{id}', [DataStoreController::class, 'edit'])->name('edit');
-    Route::put('/actualizar/{id}', [DataStoreController::class, 'update'])->name('update');
-    Route::delete('/eliminar/{id}', [DataStoreController::class, 'destroy'])->name('destroy');
-});
+    /*
+    |--------------------------------------------------------------------------
+    | Data Stores (CRUD general)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('data-stores')->name('data-stores.')->group(function () {
+        Route::get('/', [DataStoreController::class, 'index'])->name('index');
+        Route::get('/crear', [DataStoreController::class, 'create'])->name('create');
+        Route::post('/guardar', [DataStoreController::class, 'store'])->name('store');
+        Route::get('/editar/{id}', [DataStoreController::class, 'edit'])->name('edit');
+        Route::put('/actualizar/{id}', [DataStoreController::class, 'update'])->name('update');
+        Route::delete('/eliminar/{id}', [DataStoreController::class, 'destroy'])->name('destroy');
+    });
 
-/*
-|--------------------------------------------------------------------------
-| Recipients
-|--------------------------------------------------------------------------
-*/
-Route::prefix('recipients')->name('recipients.')->group(function () {
-    Route::get('/', [RecipientController::class, 'index'])->name('index');
-    Route::get('/crear', [RecipientController::class, 'create'])->name('create');
-    Route::post('/guardar', [RecipientController::class, 'store'])->name('store');
-    Route::get('/editar/{id}', [RecipientController::class, 'edit'])->name('edit');
-    Route::put('/actualizar/{id}', [RecipientController::class, 'update'])->name('update');
-    Route::delete('/eliminar/{id}', [RecipientController::class, 'destroy'])->name('destroy');
-});
+    /*
+    |--------------------------------------------------------------------------
+    | Recipients
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('recipients')->name('recipients.')->group(function () {
+        Route::get('/', [RecipientController::class, 'index'])->name('index');
+        Route::get('/crear', [RecipientController::class, 'create'])->name('create');
+        Route::post('/guardar', [RecipientController::class, 'store'])->name('store');
+        Route::get('/editar/{id}', [RecipientController::class, 'edit'])->name('edit');
+        Route::put('/actualizar/{id}', [RecipientController::class, 'update'])->name('update');
+        Route::delete('/eliminar/{id}', [RecipientController::class, 'destroy'])->name('destroy');
+    });
 
-/*
-|--------------------------------------------------------------------------
-| Document
-|--------------------------------------------------------------------------
-*/
-// Document (SIN auth por ahora)
-Route::resource('documents', DocumentController::class);
+    /*
+    |--------------------------------------------------------------------------
+    | Document
+    |--------------------------------------------------------------------------
+    */
+    // Document (SIN auth por ahora)
+    Route::resource('documents', DocumentController::class);
 
-// Subir nueva versión
-Route::get('documents/{document}/versions/create', [DocumentController::class, 'createVersion'])
-    ->name('documents.versions.create');
+    // Subir nueva versión
+    Route::get('documents/{document}/versions/create', [DocumentController::class, 'createVersion'])
+        ->name('documents.versions.create');
 
-Route::post('documents/{document}/versions', [DocumentController::class, 'storeVersion'])
-    ->name('documents.versions.store');
+    Route::post('documents/{document}/versions', [DocumentController::class, 'storeVersion'])
+        ->name('documents.versions.store');
 
-// Activar una versión como principal
-Route::post('documents/{document}/versions/{version}/activate', [DocumentController::class, 'activateVersion'])
-    ->name('documents.versions.activate');
+    // Activar una versión como principal
+    Route::post('documents/{document}/versions/{version}/activate', [DocumentController::class, 'activateVersion'])
+        ->name('documents.versions.activate');
 
-// Descargar archivo de versión
-Route::get('documents/{document}/versions/{version}/download', [DocumentController::class, 'downloadVersion'])
-    ->name('documents.versions.download');
+    // Descargar archivo de versión
+    Route::get('documents/{document}/versions/{version}/download', [DocumentController::class, 'downloadVersion'])
+        ->name('documents.versions.download');
 
-// Country
-Route::prefix('privacy')->name('privacy.')->group(function() {
-    Route::resource('country', CountryController::class);
+    // Country
+    Route::prefix('privacy')->name('privacy.')->group(function() {
+        Route::resource('country', CountryController::class);
+    });
 });

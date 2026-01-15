@@ -71,7 +71,7 @@
         ],
         [
             'key' => 'core',
-            'label' => 'CORE',
+            'label' => 'NÚCLEO',
             'items' => [
                 ['label' => 'Organizaciones', 'href' => route('orgs.index'), 'key' => 'org'],
             ],
@@ -87,7 +87,7 @@
         ],
         [
             'key' => 'privacy',
-            'label' => 'PRIVACY',
+            'label' => 'PRIVACIDAD',
             'items' => [
                 ['label' => 'Catálogos (Base)', 'href' => route('privacy.data_category.index'), 'key' => 'privacy_catalogs'],
                 ['label' => 'Sistemas / Data Stores', 'href' => route('systems.index'), 'key' => 'systems'],
@@ -100,7 +100,7 @@
         ],
         [
             'key' => 'risk_audit',
-            'label' => 'RISK & AUDIT',
+            'label' => 'RIESGO & AUDITORIA',
             'items' => [
                 ['label' => 'Riesgos', 'href' => url('/risk/ui/risks'), 'key' => 'risks'],
                 ['label' => 'DPIA', 'href' => url('/risk/ui/dpias'), 'key' => 'dpia'],
@@ -119,11 +119,11 @@
         ],
         [
             'key' => 'training',
-            'label' => 'TRAINING',
+            'label' => 'FORMACIÓN',
             'items' => [
                 ['label' => 'Paises', 'href' => route('privacy.country.index'), 'key' => 'country'],
-                ['label' => 'Asignaciones', 'href' => '/training/assignments', 'key' => 'assignments'],
-                ['label' => 'Resultados',   'href' => '/training/results',    'key' => 'results'],
+                // ['label' => 'Asignaciones', 'href' => '/training/assignments', 'key' => 'assignments'],
+                // ['label' => 'Resultados',   'href' => '/training/results',    'key' => 'results'],
             ],
         ],
     ];
@@ -227,6 +227,21 @@
                         </div>
                     </div>
                 </div>
+                {{-- Botón de logout con confirmación --}}
+                <button type="button"
+                        onclick="confirmLogout()"
+                        class="ml-2 p-2 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                        title="Cerrar sesión">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                </button>
+
+                {{-- Formulario oculto para logout --}}
+                <form id="logout-form" method="POST" action="{{ route('logout') }}" class="hidden">
+                    @csrf
+                </form>
             </div>
         </div>
     </header>
@@ -668,7 +683,30 @@
     });
 @endif
 </script>
-
+{{-- Script para confirmar logout --}}
+<script>
+function confirmLogout() {
+    Swal.fire({
+        title: '¿Cerrar sesión?',
+        text: '¿Estás seguro de que deseas salir del sistema?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, cerrar sesión',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true,
+        backdrop: true,
+        allowOutsideClick: false,
+        allowEscapeKey: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Enviar el formulario de logout
+            document.getElementById('logout-form').submit();
+        }
+    });
+}
+</script>
 @stack('scripts')
 </body>
 </html>
