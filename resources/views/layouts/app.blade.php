@@ -64,7 +64,7 @@
     $nav = [
         [
             'key' => 'dashboard',
-            'label' => 'Dashboard',
+            'label' => 'Centro de estadísticas',
             'items' => [
                 ['label' => 'Inicio', 'href' => route('dashboard'), 'key' => 'dashboard'],
             ],
@@ -266,7 +266,6 @@
                 </div>
                 <div>
                     <h2 class="font-bold text-lg leading-tight">SGPD COAC</h2>
-                    <p class="text-xs text-blue-100">Layout global (equipo)</p>
                 </div>
             </div>
         </div>

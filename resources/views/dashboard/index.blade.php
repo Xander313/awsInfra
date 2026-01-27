@@ -13,7 +13,7 @@
         <div class="space-y-1">
             <div class="flex items-center gap-2">
                 <h2 class="text-2xl font-bold text-gray-900 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-                    Dashboard SGPD
+                    Centro de estadísticas
                 </h2>
                 <span class="px-2 py-1 text-xs font-semibold bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full">
                     COAC
