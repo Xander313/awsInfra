@@ -182,10 +182,14 @@
                                         @click="openRisks(d)">
                                     <i class="fa-solid fa-link"></i> Riesgos
                                 </button>
+
+<!--
                                 <button class="px-3 py-1.5 rounded border border-red-200 text-red-700 hover:bg-red-50 text-xs"
                                         @click="confirmDelete(d)">
                                     <i class="fa-solid fa-trash"></i> Eliminar
                                 </button>
+
+                                -->
                             </div>
                         </td>
                     </tr>

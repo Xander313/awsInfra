@@ -8,7 +8,6 @@
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <div>
         <h2 class="text-xl font-bold">Riesgos</h2>
-        <p class="text-sm text-gray-500">CRUD de <span class="font-mono">risk.risk</span></p>
     </div>
 
     <div class="flex gap-2">
@@ -57,9 +56,6 @@
                         <option :value="String(o.org_id)" x-text="`(${o.org_id}) ${o.name}`"></option>
                     </template>
                 </select>
-                <div class="text-[11px] text-gray-400 mt-1">
-                    El backend usa <span class="font-mono">org_id=1</span> por defecto al crear si lo dejas vacío.
-                </div>
             </div>
 
             <div class="flex gap-2">
@@ -123,10 +119,14 @@
                                         @click="openEdit(r)">
                                     <i class="fa-solid fa-pen"></i> Editar
                                 </button>
+
+<!--
                                 <button class="px-3 py-1.5 rounded border border-red-200 text-red-700 hover:bg-red-50 text-xs"
                                         @click="confirmDelete(r)">
                                     <i class="fa-solid fa-trash"></i> Eliminar
                                 </button>
+
+                                -->
                             </div>
                         </td>
                     </tr>
