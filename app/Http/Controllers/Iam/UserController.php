@@ -42,14 +42,7 @@ class UserController extends Controller
                     }
                 }
             ],
-            'full_name' => [
-                'required',
-                function ($attribute, $value, $fail) {
-                    if (AppUser::where('full_name', $value)->exists()) {
-                        $fail('El nombre completo ya está registrado en el sistema');
-                    }
-                }
-            ],
+
             'status' => 'required|in:activo,suspendido',
             'unit_id' => [
                 'nullable',
@@ -67,13 +60,13 @@ class UserController extends Controller
             'status.required' => 'Por favor seleccione el estado del usuario',
             'status.in' => 'Estado no válido'
         ]);
-        
+
         if ($validator->fails()) {
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
         }
-        
+
         $datos = [
             'email' => $request->email,
             'full_name' => $request->full_name,
@@ -81,7 +74,7 @@ class UserController extends Controller
             'unit_id' => $request->unit_id,
             'created_at' => now()
         ];
-        
+
         AppUser::create($datos);
         return redirect()->route('users.index')->with('message', 'Usuario creado exitosamente');
     }
@@ -109,7 +102,7 @@ class UserController extends Controller
     public function update(Request $request, string $id)
     {
         $user = AppUser::findOrFail($id);
-        
+
         // Validación personalizada para evitar problemas con el esquema
         $validator = Validator::make($request->all(), [
             'email' => [
@@ -124,17 +117,7 @@ class UserController extends Controller
                     }
                 }
             ],
-            'full_name' => [
-                'required',
-                function ($attribute, $value, $fail) use ($id) {
-                    $exists = AppUser::where('full_name', $value)
-                        ->where('user_id', '!=', $id)
-                        ->exists();
-                    if ($exists) {
-                        $fail('El nombre completo ya está registrado en el sistema');
-                    }
-                }
-            ],
+
             'status' => 'required|in:activo,suspendido',
             'unit_id' => [
                 'nullable',
@@ -157,20 +140,20 @@ class UserController extends Controller
             'status.required' => 'Por favor seleccione el estado del usuario',
             'status.in' => 'Estado no válido'
         ]);
-        
+
         if ($validator->fails()) {
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
         }
-        
+
         $datos = [
             'email' => $request->email,
             'full_name' => $request->full_name,
             'status' => $request->status,
             'unit_id' => $request->unit_id
         ];
-        
+
         $user->update($datos);
         return redirect()->route('users.index')->with('message', 'Usuario actualizado exitosamente');
     }
@@ -192,7 +175,7 @@ class UserController extends Controller
             $user->update(['status' => 'activo']);
             $message = 'Usuario activado exitosamente';
         }
-        
+
         return redirect()->route('users.index')->with('message', $message);
     }
 }
