@@ -5,7 +5,6 @@
 
 @section('content')
 <div class="container-fluid px-0">
-    <!-- Encabezado -->
     <div class="bg-white rounded-lg border border-gray-200 mb-6 p-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -22,14 +21,12 @@
         </div>
     </div>
 
-    <!-- Formulario -->
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
         <form action="{{ route('permissions.update', $permission->perm_id) }}" method="POST">
             @csrf
             @method('PUT')
             
             <div class="p-6 space-y-6">
-                <!-- Campo Código -->
                 <div>
                     <label for="code" class="block text-sm font-medium text-gray-700 mb-2">
                         Código del Permiso <span class="text-red-500">*</span>
@@ -46,7 +43,6 @@
                     @enderror
                 </div>
 
-                <!-- Campo Descripción -->
                 <div>
                     <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
                         Descripción
@@ -62,7 +58,37 @@
                     @enderror
                 </div>
 
-                <!-- Información del permiso (solo lectura) -->
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                        Estado <span class="text-red-500">*</span>
+                    </label>
+                    <select id="status" 
+                            name="status" 
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            required>
+                        <option value="activo" {{ old('status', $permission->status) == 'activo' ? 'selected' : '' }} class="text-green-700">
+                            Activo
+                        </option>
+                        <option value="inactivo" {{ old('status', $permission->status) == 'inactivo' ? 'selected' : '' }} class="text-red-700">
+                            Inactivo
+                        </option>
+                    </select>
+                    @error('status')
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                    
+                    <div class="mt-3 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span class="text-sm text-gray-600"><strong>Activo:</strong> Permiso funcional</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <span class="text-sm text-gray-600"><strong>Inactivo:</strong> Permiso deshabilitado</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
                     <div class="flex items-start gap-3">
                         <svg class="w-5 h-5 text-gray-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,7 +111,6 @@
                 </div>
             </div>
 
-            <!-- Botones de acción -->
             <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row gap-3">
                 <button type="submit" 
                         class="inline-flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex-1 sm:flex-none">
@@ -107,7 +132,38 @@
     </div>
 </div>
 
-<!-- JQuery Validation -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const statusSelect = document.getElementById('status');
+        
+        // Colorear el select según estado seleccionado
+        function updateStatusColor() {
+            const value = statusSelect.value;
+            const colors = {
+                'activo': 'border-green-300 bg-green-50 text-green-800',
+                'inactivo': 'border-red-300 bg-red-50 text-red-800'
+            };
+            
+            // Remover todas las clases de color
+            statusSelect.classList.remove(
+                'border-green-300', 'bg-green-50', 'text-green-800',
+                'border-gray-300', 'bg-gray-50', 'text-gray-800',
+                'border-red-300', 'bg-red-50', 'text-red-800'
+            );
+            
+            // Agregar clases según valor
+            const [border, bg, text] = colors[value].split(' ');
+            statusSelect.classList.add(border, bg, text);
+        }
+        
+        // Inicializar color
+        updateStatusColor();
+        
+        // Actualizar color cuando cambie
+        statusSelect.addEventListener('change', updateStatusColor);
+    });
+</script>
+
 <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.js"></script>
 
@@ -124,6 +180,9 @@
                     required: true,
                     minlength: 3,
                     maxlength: 500
+                },
+                status: {
+                    required: true
                 }
             },
             messages: {
@@ -136,6 +195,9 @@
                     required: "Por favor ingrese la descripción del permiso",
                     minlength: "La descripción debe tener al menos 1 palabra",
                     maxlength: "La descripción no puede exceder los 500 caracteres"
+                },
+                status: {
+                    required: "Por favor seleccione el estado del permiso"
                 }
             },
         });
@@ -147,6 +209,5 @@
     }
 </style>
 
-<!-- SweetAlert2 CDN (ya incluido en layout, pero por si acaso) -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 @endsection

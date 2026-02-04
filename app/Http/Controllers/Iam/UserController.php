@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Iam;
 
 use App\Http\Controllers\Controller;
 use App\Models\IAM\AppUser;
+use App\Models\IAM\Role; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,7 +15,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = AppUser::orderBy('user_id')->get();
+        $users = AppUser::with('roles')->orderBy('user_id')->get();
         return view('iam.users.index', compact('users'));
     }
 
@@ -23,7 +24,8 @@ class UserController extends Controller
      */
     public function create()
     {
-        return view('iam.users.nuevo');
+        $roles = Role::orderBy('name')->get();
+        return view('iam.users.nuevo', compact('roles'));
     }
 
     /**
@@ -31,7 +33,7 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        // Validación personalizada para evitar problemas con el esquema
+        // Validación idéntica a la original, sin reglas de 'roles'
         $validator = Validator::make($request->all(), [
             'email' => [
                 'required',
@@ -42,7 +44,6 @@ class UserController extends Controller
                     }
                 }
             ],
-
             'status' => 'required|in:activo,suspendido',
             'unit_id' => [
                 'nullable',
@@ -75,7 +76,13 @@ class UserController extends Controller
             'created_at' => now()
         ];
 
-        AppUser::create($datos);
+        $user = AppUser::create($datos);
+
+        // Lógica similar a RoleController::store
+        if ($request->has('roles')) {
+            $user->roles()->sync($request->roles);
+        }
+
         return redirect()->route('users.index')->with('message', 'Usuario creado exitosamente');
     }
 
@@ -92,8 +99,9 @@ class UserController extends Controller
      */
     public function edit(string $id)
     {
-        $user = AppUser::findOrFail($id);
-        return view('iam.users.editar', compact('user'));
+        $user = AppUser::with('roles')->findOrFail($id);
+        $roles = Role::orderBy('name')->get();
+        return view('iam.users.editar', compact('user', 'roles'));
     }
 
     /**
@@ -103,7 +111,7 @@ class UserController extends Controller
     {
         $user = AppUser::findOrFail($id);
 
-        // Validación personalizada para evitar problemas con el esquema
+        // Validación idéntica a la original, sin reglas de 'roles'
         $validator = Validator::make($request->all(), [
             'email' => [
                 'required',
@@ -117,7 +125,6 @@ class UserController extends Controller
                     }
                 }
             ],
-
             'status' => 'required|in:activo,suspendido',
             'unit_id' => [
                 'nullable',
@@ -155,6 +162,10 @@ class UserController extends Controller
         ];
 
         $user->update($datos);
+        
+        // Lógica similar a RoleController::update
+        $user->roles()->sync($request->roles ?? []);
+        
         return redirect()->route('users.index')->with('message', 'Usuario actualizado exitosamente');
     }
 
@@ -165,13 +176,10 @@ class UserController extends Controller
     {
         $user = AppUser::findOrFail($id);
 
-        // Determinar acción basada en estado actual
         if ($user->status == 'activo') {
-            // Suspender usuario activo
             $user->update(['status' => 'suspendido']);
             $message = 'Usuario suspendido exitosamente';
         } else {
-            // Activar usuario suspendido
             $user->update(['status' => 'activo']);
             $message = 'Usuario activado exitosamente';
         }

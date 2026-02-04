@@ -5,7 +5,6 @@
 
 @section('content')
 <div class="container-fluid px-0">
-    <!-- Encabezado -->
     <div class="bg-white rounded-lg border border-gray-200 mb-6 p-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -22,13 +21,11 @@
         </div>
     </div>
 
-    <!-- Formulario -->
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
         <form action="{{ route('roles.store') }}" method="POST">
             @csrf
             
             <div class="p-6 space-y-6">
-                <!-- Campo Nombre -->
                 <div>
                     <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
                         Nombre del Rol <span class="text-red-500">*</span>
@@ -48,7 +45,6 @@
                     </p>
                 </div>
 
-                <!-- Campo Descripción -->
                 <div>
                     <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
                         Descripción
@@ -67,15 +63,24 @@
                     </p>
                 </div>
 
-                <!-- Sección Permisos-->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Estado
+                    </label>
+                    <div class="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span class="font-medium text-green-800">Activo</span>
+                        <span class="text-sm text-green-600 ml-auto">(Por defecto para nuevos roles)</span>
+                    </div>
+                    <input type="hidden" name="status" value="activo">
+                </div>
+
                 <div class="mt-6">
                     <label class="block text-sm font-medium text-gray-700 mb-3">
                         Permisos asignados
                     </label>
                     
-                    <!-- Contenedor de checkboxes con scroll -->
                     <div class="border border-gray-300 rounded-lg p-4 max-h-72 overflow-y-auto bg-gray-50">
-                        <!-- Botones de selección rápida -->
                         <div class="flex gap-2 mb-3 pb-3 border-b border-gray-200">
                             <button type="button" 
                                     onclick="selectAllPermissions()"
@@ -89,7 +94,6 @@
                             </button>
                         </div>
                         
-                        <!-- Lista de permisos -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             @forelse($permissions as $perm)
                                 <div class="flex items-start p-2 hover:bg-white rounded transition-colors">
@@ -118,7 +122,6 @@
                         <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                     
-                    <!-- Contador de permisos seleccionados -->
                     <div class="mt-2 flex justify-between items-center">
                         <p class="text-sm text-gray-500">
                             Permisos seleccionados: <span id="selectedCount" class="font-medium">0</span>
@@ -129,7 +132,7 @@
                     </div>
                 </div>
             </div>
-            <!-- Botones de acción -->
+            
             <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row gap-3">
                 <button type="submit" 
                         class="inline-flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex-1 sm:flex-none">
@@ -151,7 +154,6 @@
     </div>
 </div>
 
-<!-- JQuery Validation -->
 <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.js"></script>
 
@@ -226,6 +228,5 @@
 
 </script>
 
-<!-- SweetAlert2 CDN (ya incluido en layout, pero por si acaso) -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 @endsection

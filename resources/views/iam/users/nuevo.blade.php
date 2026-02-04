@@ -5,7 +5,6 @@
 
 @section('content')
 <div class="container-fluid px-0">
-    <!-- Encabezado -->
     <div class="bg-white rounded-lg border border-gray-200 mb-6 p-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -22,13 +21,11 @@
         </div>
     </div>
 
-    <!-- Formulario -->
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
         <form action="{{ route('users.store') }}" method="POST">
             @csrf
             
             <div class="p-6 space-y-6">
-                <!-- Campo Email -->
                 <div>
                     <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
                         Email <span class="text-red-500">*</span>
@@ -45,7 +42,6 @@
                     @enderror
                 </div>
 
-                <!-- Campo Nombre Completo -->
                 <div>
                     <label for="full_name" class="block text-sm font-medium text-gray-700 mb-2">
                         Nombre Completo <span class="text-red-500">*</span>
@@ -62,7 +58,6 @@
                     @enderror
                 </div>
 
-                <!-- Campo Estado (solo lectura, fijo en "activo") -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
                         Estado
@@ -75,7 +70,6 @@
                     <input type="hidden" name="status" value="activo">
                 </div>
 
-                <!-- Campo Unit ID (opcional) -->
                 <div>
                     <label for="unit_id" class="block text-sm font-medium text-gray-700 mb-2">
                         ID de Unidad
@@ -94,9 +88,65 @@
                         Identificador de la unidad/organización a la que pertenece el usuario.
                     </p>
                 </div>
+
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">
+                        Asignar Roles
+                    </label>
+                    
+                    <div class="border border-gray-300 rounded-lg p-4 max-h-72 overflow-y-auto bg-gray-50">
+                        <div class="flex gap-2 mb-3 pb-3 border-b border-gray-200">
+                            <button type="button" 
+                                    onclick="selectAllRoles()"
+                                    class=" px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded transition-colors">
+                                Seleccionar todos
+                            </button>
+                            <button type="button" 
+                                    onclick="deselectAllRoles()"
+                                    class=" px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded transition-colors">
+                                Quitar selección
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            @forelse($roles as $role)
+                                <div class="flex items-start p-2 hover:bg-white rounded transition-colors">
+                                    <input type="checkbox" 
+                                        id="role_{{ $role->role_id }}" 
+                                        name="roles[]" 
+                                        value="{{ $role->role_id }}"
+                                        class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        {{ (is_array(old('roles')) && in_array($role->role_id, old('roles'))) ? 'checked' : '' }}>
+                                    <label for="role_{{ $role->role_id }}" class="ml-3 text-sm text-gray-700 flex-1">
+                                        <div class="font-medium text-gray-900">{{ $role->name }}</div>
+                                        @if($role->description)
+                                            <div class="text-gray-500 text-xs mt-1">{{ Str::limit($role->description, 70) }}</div>
+                                        @endif
+                                    </label>
+                                </div>
+                            @empty
+                                <div class="col-span-2 text-center py-4 text-gray-500">
+                                    No hay roles registrados en el sistema. <a href="{{ route('roles.create') }}" class="text-blue-600 hover:underline">Crear un rol primero</a>.
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                    
+                    @error('roles')
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                    
+                    <div class="mt-2 flex justify-between items-center">
+                        <p class="text-sm text-gray-500">
+                            Roles seleccionados: <span id="selectedCount" class="font-medium">0</span>
+                        </p>
+                        <p class="text-xs text-gray-400">
+                            Total: {{ $roles->count() }} roles
+                        </p>
+                    </div>
+                </div>
             </div>
 
-            <!-- Botones de acción -->
             <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row gap-3">
                 <button type="submit" 
                         class="inline-flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex-1 sm:flex-none">
@@ -117,7 +167,7 @@
         </form>
     </div>
 </div>
-<!-- JQuery Validation -->
+
 <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.js"></script>
 
@@ -164,6 +214,40 @@
         color: red;
     }
 </style>
-<!-- SweetAlert2 CDN (ya incluido en layout, pero por si acaso) -->
+
+<script>
+    // Funciones para selección rápida y conteo
+    function selectAllRoles() {
+        document.querySelectorAll('input[name="roles[]"]').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        updateSelectedCount();
+    }
+
+    function deselectAllRoles() {
+        document.querySelectorAll('input[name="roles[]"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateSelectedCount();
+    }
+
+    // Actualizar contador
+    function updateSelectedCount() {
+        const checked = document.querySelectorAll('input[name="roles[]"]:checked').length;
+        document.getElementById('selectedCount').textContent = checked;
+    }
+
+    // Inicializar contador y eventos al cargar
+    document.addEventListener('DOMContentLoaded', function() {
+        // Contador inicial
+        updateSelectedCount();
+        
+        // Actualizar contador al cambiar checkboxes
+        document.querySelectorAll('input[name="roles[]"]').forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedCount);
+        });
+    });
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 @endsection

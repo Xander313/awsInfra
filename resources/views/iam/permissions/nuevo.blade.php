@@ -5,7 +5,6 @@
 
 @section('content')
 <div class="container-fluid px-0">
-    <!-- Encabezado -->
     <div class="bg-white rounded-lg border border-gray-200 mb-6 p-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -22,13 +21,11 @@
         </div>
     </div>
 
-    <!-- Formulario -->
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
         <form action="{{ route('permissions.store') }}" method="POST">
             @csrf
             
             <div class="p-6 space-y-6">
-                <!-- Campo Código -->
                 <div>
                     <label for="code" class="block text-sm font-medium text-gray-700 mb-2">
                         Código del Permiso <span class="text-red-500">*</span>
@@ -48,7 +45,6 @@
                     </p>
                 </div>
 
-                <!-- Campo Descripción -->
                 <div>
                     <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
                         Descripción
@@ -66,9 +62,20 @@
                         Información adicional sobre qué permite hacer este permiso en el sistema.
                     </p>
                 </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Estado
+                    </label>
+                    <div class="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span class="font-medium text-green-800">Activo</span>
+                        <span class="text-sm text-green-600 ml-auto">(Por defecto para nuevos permisos)</span>
+                    </div>
+                    <input type="hidden" name="status" value="activo">
+                </div>
             </div>
 
-            <!-- Botones de acción -->
             <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row gap-3">
                 <button type="submit" 
                         class="inline-flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex-1 sm:flex-none">
@@ -90,7 +97,6 @@
     </div>
 </div>
 
-<!-- JQuery Validation -->
 <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.js"></script>
 
@@ -130,6 +136,5 @@
     }
 </style>
 
-<!-- SweetAlert2 CDN (ya incluido en layout, pero por si acaso) -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 @endsection

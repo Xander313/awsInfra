@@ -5,7 +5,6 @@
 
 @section('content')
 <div class="container-fluid px-0">
-    <!-- Encabezado -->
     <div class="bg-white rounded-lg border border-gray-200 mb-6 p-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -22,7 +21,6 @@
         </div>
     </div>
 
-    <!-- Mensajes de sesión -->
     @if(session('message'))
         <div class="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
             <div class="flex items-center gap-2">
@@ -34,16 +32,13 @@
         </div>
     @endif
 
-    <!-- Tarjeta principal -->
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <!-- Encabezado tabla -->
         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h2 class="text-lg font-semibold text-gray-900">Listado de Usuarios</h2>
             </div>
         </div>
 
-        <!-- Tabla -->
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200" id="myTable">
                 <thead class="bg-gray-50">
@@ -91,7 +86,18 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex items-center gap-2">
-                                <!-- Botón Editar -->
+                                <button type="button" 
+                                        class="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900 btn-roles"
+                                        data-name="{{ $usuario->full_name }}"
+                                        data-roles="{{ $usuario->roles->pluck('name')->implode(', ') }}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                    </svg>
+                                    Roles
+                                </button>
+
+                                <span class="text-gray-300">|</span>
+
                                 <a href="{{ route('users.edit', $usuario->user_id) }}" 
                                    class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,10 +106,8 @@
                                     Editar
                                 </a>
 
-                                <!-- Separador -->
                                 <span class="text-gray-300">|</span>
 
-                                <!-- Botón Suspender/Activar -->
                                 @if($usuario->status == 'activo')
                                 <form action="{{ route('users.destroy', $usuario->user_id) }}" method="POST" class="inline form-suspender">
                                     @csrf
@@ -136,19 +140,47 @@
                 </tbody>
             </table>
         </div>
-
-        
     </div>
 </div>
 
-<!-- JQuery -->
+<div id="rolesModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900" id="modalUserTitle">Roles Asignados</h3>
+            <button type="button" id="closeUserModal" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="px-6 py-4 overflow-y-auto max-h-[calc(80vh-8rem)]">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
+                <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <p class="text-gray-900 font-medium" id="modalUserName"></p>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Roles asignados</label>
+                <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 max-h-40 overflow-y-auto">
+                    <div id="modalRolesList" class="flex flex-wrap gap-2">
+                        </div>
+                    <div id="noRolesMessage" class="hidden text-gray-500 text-sm italic">
+                        Este usuario no tiene roles asignados.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 
-<!-- DataTables CSS y JS -->
 <link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.min.css">
 <script src="https://cdn.datatables.net/2.3.2/js/dataTables.min.js"></script>
 
-<!-- SweetAlert2 CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
@@ -160,32 +192,26 @@ let table = new DataTable('#myTable', {
     pageLength: 10,
     lengthMenu: [10, 25, 50, 100],
     search: {
-        // Búsqueda normal (input general)
         smart: true
     },
     columnDefs: [
         {
-            // Columna # (índice 0) - NO buscable
             targets: 0,
             searchable: false
         },
         {
-            // Columna Usuario (índice 1) - SÍ buscable
             targets: 1,
             searchable: true
         },
         {
-            // Columna Estado (índice 2) - NO buscable
             targets: 2,
             searchable: false
         },
         {
-            // Columna Creado (índice 3) - NO buscable
             targets: 3,
             searchable: false
         },
         {
-            // Columna Creado (índice 4) - NO buscable
             targets: 4,
             searchable: false
         }
@@ -194,9 +220,49 @@ let table = new DataTable('#myTable', {
 </script>
 
 <script>
-// Delegación de eventos para manejar botones dinámicos de DataTables
+// Delegación de eventos
 document.addEventListener('click', function(event) {
-    // Detectar clic en botón "Suspender"
+    
+    // 1. DETECTAR BOTÓN "ROLES" (Modal)
+    if (event.target.closest('.btn-roles')) {
+        event.preventDefault();
+        
+        const button = event.target.closest('.btn-roles');
+        const userName = button.getAttribute('data-name');
+        const rolesString = button.getAttribute('data-roles');
+        
+        // Llenar el modal
+        document.getElementById('modalUserName').textContent = userName;
+        
+        // Mostrar/Ocultar lista de roles
+        const rolesList = document.getElementById('modalRolesList');
+        const noRolesMsg = document.getElementById('noRolesMessage');
+        
+        if (rolesString && rolesString.trim() !== '') {
+            const rolesArray = rolesString.split(', ');
+            let html = '';
+            
+            rolesArray.forEach(role => {
+                html += `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                            ${role}
+                         </span>`;
+            });
+            
+            rolesList.innerHTML = html;
+            rolesList.classList.remove('hidden');
+            noRolesMsg.classList.add('hidden');
+        } else {
+            rolesList.innerHTML = '';
+            rolesList.classList.add('hidden');
+            noRolesMsg.classList.remove('hidden');
+        }
+        
+        // Mostrar modal
+        document.getElementById('rolesModal').classList.remove('hidden');
+        document.getElementById('rolesModal').classList.add('flex');
+    }
+
+    // 2. DETECTAR CLIC EN SUSPENDER
     if (event.target.closest('.btn-suspender')) {
         event.preventDefault();
         const form = event.target.closest('form');
@@ -217,7 +283,7 @@ document.addEventListener('click', function(event) {
         });
     }
     
-    // Detectar clic en botón "Activar"
+    // 3. DETECTAR CLIC EN ACTIVAR
     if (event.target.closest('.btn-activar')) {
         event.preventDefault();
         const form = event.target.closest('form');
@@ -240,5 +306,25 @@ document.addEventListener('click', function(event) {
 });
 </script>
 
+<script>
+// Cerrar modal
+function closeUserModal() {
+    document.getElementById('rolesModal').classList.remove('flex');
+    document.getElementById('rolesModal').classList.add('hidden');
+}
+
+// Asignar eventos para cerrar
+document.getElementById('closeUserModal').addEventListener('click', closeUserModal);
+
+// Cerrar con tecla ESC
+document.addEventListener('keydown', function(event) {
+    const modal = document.getElementById('rolesModal');
+    const isModalVisible = !modal.classList.contains('hidden');
+    
+    if (isModalVisible && event.key === 'Escape') {
+        closeUserModal();
+    }
+});
+</script>
 
 @endsection

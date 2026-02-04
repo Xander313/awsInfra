@@ -3,6 +3,7 @@
 namespace App\Models\IAM;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class AppUser extends Model
 {
@@ -22,4 +23,14 @@ class AppUser extends Model
         'last_login_at' => 'datetime',
         'created_at' => 'datetime'
     ];
+
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Role::class,
+            'iam.user_role',
+            'user_id',
+            'role_id'
+        );
+    }
 }

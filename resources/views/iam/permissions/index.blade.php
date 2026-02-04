@@ -5,7 +5,6 @@
 
 @section('content')
 <div class="container-fluid px-0">
-    <!-- Encabezado -->
     <div class="bg-white rounded-lg border border-gray-200 mb-6 p-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -22,7 +21,6 @@
         </div>
     </div>
 
-    <!-- Mensajes de sesión -->
     @if(session('message'))
         <div class="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
             <div class="flex items-center gap-2">
@@ -34,7 +32,6 @@
         </div>
     @endif
 
-    <!-- Agregar este código para mostrar errores -->
     @if(session('error'))
         <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             <div class="flex items-center gap-2">
@@ -46,16 +43,13 @@
         </div>
     @endif
 
-    <!-- Tarjeta principal -->
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <!-- Encabezado tabla -->
         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h2 class="text-lg font-semibold text-gray-900">Listado de Permisos</h2>
             </div>
         </div>
 
-        <!-- Tabla -->
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200" id="myTable">
                 <thead class="bg-gray-50">
@@ -63,6 +57,7 @@
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles Asignados</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
@@ -83,6 +78,17 @@
                                 @endif
                             </div>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @php
+                                $estadoColor = [
+                                    'activo' => 'bg-green-100 text-green-800 border-green-200',
+                                    'inactivo' => 'bg-red-100 text-red-800 border-red-200'
+                                ][$permiso->status] ?? 'bg-gray-100 text-gray-800 border-gray-200';
+                            @endphp
+                            <span class="px-3 py-1 text-xs font-medium rounded-full border {{ $estadoColor }}">
+                                {{ ucfirst($permiso->status) }}
+                            </span>
+                        </td>
                         <td class="px-6 py-4">
                             <span class="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border bg-blue-100 text-blue-800 border-blue-200 whitespace-nowrap">
                                 {{ $permiso->roles->count() }} rol(es)
@@ -90,7 +96,6 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex items-center gap-2">
-                                <!-- Botón Detalles (Modal) -->
                                 <button type="button" 
                                         class="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900 btn-detalles"
                                         data-id="{{ $permiso->perm_id }}"
@@ -104,10 +109,8 @@
                                     Detalles
                                 </button>
 
-                                <!-- Separador -->
                                 <span class="text-gray-300">|</span>
 
-                                <!-- Botón Editar -->
                                 <a href="{{ route('permissions.edit', $permiso->perm_id) }}" 
                                    class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,21 +119,35 @@
                                     Editar
                                 </a>
 
-                                <!-- Separador -->
                                 <span class="text-gray-300">|</span>
 
-                                <!-- Botón Eliminar -->
-                                <form action="{{ route('permissions.destroy', $permiso->perm_id) }}" method="POST" class="inline form-eliminar">
+                                @if($permiso->status == 'activo')
+                                <form action="{{ route('permissions.destroy', $permiso->perm_id) }}" method="POST" class="inline form-inactivar">
                                     @csrf
                                     @method('DELETE')
                                     <button type="button" 
-                                            class="inline-flex items-center gap-1 text-red-600 hover:text-red-900 btn-eliminar">
+                                            class="inline-flex items-center gap-1 text-amber-600 hover:text-amber-900 btn-inactivar"
+                                            data-code="{{ $permiso->code }}"
+                                            data-roles-count="{{ $permiso->roles->count() }}">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                                         </svg>
-                                        Eliminar
+                                        Inactivar
                                     </button>
                                 </form>
+                                @else
+                                <form action="{{ route('permissions.destroy', $permiso->perm_id) }}" method="POST" class="inline form-activar">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="button" 
+                                            class="inline-flex items-center gap-1 text-green-600 hover:text-green-900 btn-activar">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        Activar
+                                    </button>
+                                </form>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -141,10 +158,8 @@
     </div>
 </div>
 
-<!-- Modal para Detalles del Permiso -->
 <div id="detallesModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
     <div class="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden">
-        <!-- Encabezado del modal -->
         <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h3 class="text-lg font-semibold text-gray-900" id="modalTitle">Detalles del Permiso</h3>
             <button type="button" id="closeModal" class="text-gray-400 hover:text-gray-600">
@@ -154,9 +169,7 @@
             </button>
         </div>
         
-        <!-- Contenido del modal -->
         <div class="px-6 py-4 overflow-y-auto max-h-[calc(80vh-8rem)]">
-            <!-- Código del Permiso -->
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Código del Permiso</label>
                 <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -164,7 +177,6 @@
                 </div>
             </div>
             
-            <!-- Descripción -->
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
                 <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -172,21 +184,16 @@
                 </div>
             </div>
             
-            <!-- Roles asignados -->
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Roles asignados</label>
                 <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 max-h-40 overflow-y-auto">
-                    <div id="modalRolesList" class="text-gray-700 text-sm space-y-1">
-                        <!-- Los roles se cargarán aquí con JavaScript -->
-                    </div>
+                    <div id="modalRolesList" class="text-gray-700 text-sm space-y-1"></div>
                     <div id="noRolesMessage" class="hidden text-gray-500 text-sm italic">
                         Este permiso no está asignado a ningún rol.
                     </div>
                 </div>
             </div>
 
-
-            <!-- Información adicional -->
             <div class="mt-6 pt-4 border-t border-gray-200">
                 <h4 class="text-sm font-medium text-gray-900 mb-2">Información del sistema</h4>
                 <div class="grid grid-cols-2 gap-4">
@@ -204,168 +211,132 @@
     </div>
 </div>
 
-<!-- JQuery -->
 <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-
-<!-- DataTables CSS y JS -->
 <link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.min.css">
 <script src="https://cdn.datatables.net/2.3.2/js/dataTables.min.js"></script>
-
-<!-- SweetAlert2 CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-    // Inicializar DataTables
     let table = new DataTable('#myTable', {
-        language: {
-            url: 'https://cdn.datatables.net/plug-ins/2.3.6/i18n/es-ES.json'
-        },
+        language: { url: 'https://cdn.datatables.net/plug-ins/2.3.6/i18n/es-ES.json' },
         pageLength: 10,
         lengthMenu: [10, 25, 50, 100],
-        search: {
-            smart: true
-        },
+        search: { smart: true },
         columnDefs: [
-            {
-                // Columna # (índice 0) - NO buscable
-                targets: 0,
-                searchable: false
-            },
-            {
-                // Columna Código (índice 1) - SÍ buscable
-                targets: 1,
-                searchable: true
-            },
-            {
-                // Columna Descripción (índice 2) - SÍ buscable
-                targets: 2,
-                searchable: true
-            },
-            {
-                // Columna Roles (índice 3) - NO buscable
-                targets: 3,
-                searchable: false
-            },
-            {
-                // Columna Acciones (índice 4) - NO buscable
-                targets: 4,
-                searchable: false
-            }
+            { targets: 0, searchable: false },
+            { targets: 3, searchable: false },
+            { targets: 4, searchable: false },
+            { targets: 5, searchable: false }
         ]
     });
 </script>
 
 <script>
-    // Delegación de eventos para manejar botones dinámicos de DataTables (PERMISOS)
-    document.addEventListener('click', function(event) {
-        // 1. DETECTAR BOTÓN "ELIMINAR" (Permisos)
-        if (event.target.closest('.btn-eliminar')) {
-            event.preventDefault();
-            const form = event.target.closest('form');
-            const permCode = event.target.closest('tr').querySelector('.font-bold').textContent;
-            const rolesCount = parseInt(event.target.closest('tr').querySelector('.bg-blue-100').textContent);
-    
-            // Verificar si está asignado a roles
-            if (rolesCount > 0) {
-                Swal.fire({
-                    title: 'No se puede eliminar',
-                    html: `El permiso <strong>"${permCode}"</strong> está asignado a ${rolesCount} rol(es).`,
-                    icon: 'error',
-                    confirmButtonColor: '#3b82f6',
-                    confirmButtonText: 'Entendido'
-                });
-                return; // No proceder con la eliminación
-            }
+document.addEventListener('click', function(event) {
+    // 1. INACTIVAR
+    if (event.target.closest('.btn-inactivar')) {
+        event.preventDefault();
+        const button = event.target.closest('.btn-inactivar');
+        const form = button.closest('form');
+        const permCode = button.getAttribute('data-code');
+        const rolesCount = parseInt(button.getAttribute('data-roles-count'));
 
+        if (rolesCount > 0) {
             Swal.fire({
-                title: '¿Eliminar permiso?',
-                html: `¿Estás seguro de eliminar el permiso <strong>"${permCode}"</strong>?<br>Esta acción no se puede deshacer.`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Sí, eliminar',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    form.submit();
-                }
+                title: 'No se puede inactivar',
+                html: `El permiso <strong>"${permCode}"</strong> está asignado a ${rolesCount} rol(es).`,
+                icon: 'error',
+                confirmButtonColor: '#3b82f6',
+                confirmButtonText: 'Entendido'
             });
+            return;
         }
         
-        // 2. DETECTAR BOTÓN "DETALLES" (Permisos - Modal)
-        if (event.target.closest('.btn-detalles')) {
-            event.preventDefault();
-            
-            const button = event.target.closest('.btn-detalles');
-            const permId = button.getAttribute('data-id');
-            const permPosition = button.getAttribute('data-position');
-            const permCode = button.getAttribute('data-code');
-            const permDescription = button.getAttribute('data-description');
-            const rolesString = button.getAttribute('data-roles');
-            
-            // Encontrar la fila para obtener el número de roles
-            const row = button.closest('tr');
-            const rolesCount = row.querySelector('.bg-blue-100').textContent.trim();
-            
-            // Llenar el modal (AJUSTADO para permisos)
-            document.getElementById('modalTitle').textContent = `Detalles: ${permCode}`;
-            document.getElementById('modalCode').textContent = permCode;
-            document.getElementById('modalDescription').textContent = permDescription;
-            document.getElementById('modalPosition').textContent = permPosition;
-            document.getElementById('modalRolesCount').textContent = rolesCount;
-            
-            // Mostrar/Ocultar lista de roles (AJUSTADO)
-            const rolesList = document.getElementById('modalRolesList');
-            const noRolesMsg = document.getElementById('noRolesMessage');
-            
-            if (rolesString && rolesString.trim() !== '') {
-                const rolesArray = rolesString.split(', ');
-                let html = '';
-                
-                rolesArray.forEach(role => {
-                    html += `<div class="flex items-start">
-                        <svg class="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                        </svg>
-                        <span class="text-gray-700">${role}</span>
-                    </div>`;
-                });
-                
-                rolesList.innerHTML = html;
-                rolesList.classList.remove('hidden');
-                noRolesMsg.classList.add('hidden');
-            } else {
-                rolesList.innerHTML = '';
-                rolesList.classList.add('hidden');
-                noRolesMsg.classList.remove('hidden');
+        Swal.fire({
+            title: '¿Inactivar permiso?',
+            html: `El permiso <strong>"${permCode}"</strong> pasará a estado inactivo.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#f59e0b',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, inactivar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
             }
-            
-            // Mostrar modal
-            document.getElementById('detallesModal').classList.remove('hidden');
-            document.getElementById('detallesModal').classList.add('flex');
-        }
-    });
-</script>
-
-<script>
-    // Cerrar modal
-    function closeModal() {
-        document.getElementById('detallesModal').classList.remove('flex');
-        document.getElementById('detallesModal').classList.add('hidden');
+        });
+    }
+    
+    // 2. ACTIVAR
+    if (event.target.closest('.btn-activar')) {
+        event.preventDefault();
+        const form = event.target.closest('form');
+        
+        Swal.fire({
+            title: '¿Activar permiso?',
+            text: 'El permiso volverá a estar disponible.',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, activar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
     }
 
-    // Asignar eventos para cerrar
-    document.getElementById('closeModal').addEventListener('click', closeModal);
-
-    // Cerrar con tecla ESC
-    document.addEventListener('keydown', function(event) {
-        const modal = document.getElementById('detallesModal');
-        const isModalVisible = !modal.classList.contains('hidden');
+    // 3. DETALLES
+    if (event.target.closest('.btn-detalles')) {
+        event.preventDefault();
+        const button = event.target.closest('.btn-detalles');
+        const permCode = button.getAttribute('data-code');
+        const permDesc = button.getAttribute('data-description');
+        const rolesStr = button.getAttribute('data-roles');
+        const pos = button.getAttribute('data-position');
+        const row = button.closest('tr');
+        const count = row.querySelector('.bg-blue-100').textContent.trim();
         
-        if (isModalVisible && event.key === 'Escape') {
-            closeModal();
+        document.getElementById('modalTitle').textContent = `Detalles: ${permCode}`;
+        document.getElementById('modalCode').textContent = permCode;
+        document.getElementById('modalDescription').textContent = permDesc;
+        document.getElementById('modalPosition').textContent = pos;
+        document.getElementById('modalRolesCount').textContent = count;
+        
+        const list = document.getElementById('modalRolesList');
+        const msg = document.getElementById('noRolesMessage');
+        
+        if (rolesStr && rolesStr.trim() !== '') {
+            list.innerHTML = rolesStr.split(', ').map(r => `
+                <div class="flex items-start">
+                    <svg class="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span class="text-gray-700">${r}</span>
+                </div>
+            `).join('');
+            list.classList.remove('hidden');
+            msg.classList.add('hidden');
+        } else {
+            list.innerHTML = '';
+            list.classList.add('hidden');
+            msg.classList.remove('hidden');
         }
-    });
+        
+        document.getElementById('detallesModal').classList.remove('hidden');
+        document.getElementById('detallesModal').classList.add('flex');
+    }
+});
+
+function closeModal() {
+    document.getElementById('detallesModal').classList.remove('flex');
+    document.getElementById('detallesModal').classList.add('hidden');
+}
+
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 </script>
 @endsection

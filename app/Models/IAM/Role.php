@@ -13,7 +13,8 @@ class Role extends Model
 
     protected $fillable = [
         'name',
-        'description'
+        'description',
+        'status'
     ];
 
     public function permissions(): BelongsToMany
@@ -24,5 +25,15 @@ class Role extends Model
             'role_id',
             'perm_id'
         );
+    }
+
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(
+        AppUser::class,
+        'iam.user_role',
+        'role_id',
+        'user_id'
+    );
     }
 }
