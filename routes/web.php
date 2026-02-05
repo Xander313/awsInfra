@@ -10,6 +10,7 @@ use App\Http\Middleware\SingleSession;
 // rutas para auth
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\PasswordResetController;
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Core\OrgController;
@@ -49,6 +50,11 @@ Route::middleware('guest')->group(function () {
     // Login
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->name('login.post');
+
+    // Reset de contraseña
+    Route::get('/password/reset', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/password/reset', [PasswordResetController::class, 'sendResetCode'])->name('password.reset.send');
+    Route::post('/password/reset/confirm', [PasswordResetController::class, 'resetPassword'])->name('password.reset.confirm');
 
     // Registro (PASO 1: enviar código)
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
