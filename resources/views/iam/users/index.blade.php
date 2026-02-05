@@ -45,6 +45,9 @@
                     <tr>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provincia</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cantón</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Creado</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
@@ -71,6 +74,21 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
+                            @forelse($usuario->roles as $role)
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {{ $role->name }}
+                                </span>
+                            @empty
+                                <span class="text-xs text-gray-400 italic">Sin rol</span>
+                            @endforelse
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            {{ $usuario->provincia ?? '-' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            {{ $usuario->canton ?? '-' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
                             @php
                                 $estadoColor = [
                                     'activo' => 'bg-green-100 text-green-800 border-green-200',
@@ -86,18 +104,6 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex items-center gap-2">
-                                <button type="button" 
-                                        class="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900 btn-roles"
-                                        data-name="{{ $usuario->full_name }}"
-                                        data-roles="{{ $usuario->roles->pluck('name')->implode(', ') }}">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                                    </svg>
-                                    Roles
-                                </button>
-
-                                <span class="text-gray-300">|</span>
-
                                 <a href="{{ route('users.edit', $usuario->user_id) }}" 
                                    class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,39 +149,6 @@
     </div>
 </div>
 
-<div id="rolesModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900" id="modalUserTitle">Roles Asignados</h3>
-            <button type="button" id="closeUserModal" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
-        </div>
-        
-        <div class="px-6 py-4 overflow-y-auto max-h-[calc(80vh-8rem)]">
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
-                <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <p class="text-gray-900 font-medium" id="modalUserName"></p>
-                </div>
-            </div>
-            
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Roles asignados</label>
-                <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 max-h-40 overflow-y-auto">
-                    <div id="modalRolesList" class="flex flex-wrap gap-2">
-                        </div>
-                    <div id="noRolesMessage" class="hidden text-gray-500 text-sm italic">
-                        Este usuario no tiene roles asignados.
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 
 <link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.min.css">
@@ -196,23 +169,35 @@ let table = new DataTable('#myTable', {
     },
     columnDefs: [
         {
-            targets: 0,
+            targets: 0, // #
             searchable: false
         },
         {
-            targets: 1,
+            targets: 1, // Usuario
             searchable: true
         },
         {
-            targets: 2,
+            targets: 2, // Rol (NUEVO)
+            searchable: true
+        },
+        {
+            targets: 3, // Provincia (NUEVO)
+            searchable: true
+        },
+        {
+            targets: 4, // Canton (NUEVO)
+            searchable: true
+        },
+        {
+            targets: 5, // Estado (Antes 2)
             searchable: false
         },
         {
-            targets: 3,
+            targets: 6, // Creado (Antes 3)
             searchable: false
         },
         {
-            targets: 4,
+            targets: 7, // Acciones (Antes 4)
             searchable: false
         }
     ]
@@ -220,49 +205,9 @@ let table = new DataTable('#myTable', {
 </script>
 
 <script>
-// Delegación de eventos
+// Delegación de eventos para manejar botones dinámicos de DataTables
 document.addEventListener('click', function(event) {
-    
-    // 1. DETECTAR BOTÓN "ROLES" (Modal)
-    if (event.target.closest('.btn-roles')) {
-        event.preventDefault();
-        
-        const button = event.target.closest('.btn-roles');
-        const userName = button.getAttribute('data-name');
-        const rolesString = button.getAttribute('data-roles');
-        
-        // Llenar el modal
-        document.getElementById('modalUserName').textContent = userName;
-        
-        // Mostrar/Ocultar lista de roles
-        const rolesList = document.getElementById('modalRolesList');
-        const noRolesMsg = document.getElementById('noRolesMessage');
-        
-        if (rolesString && rolesString.trim() !== '') {
-            const rolesArray = rolesString.split(', ');
-            let html = '';
-            
-            rolesArray.forEach(role => {
-                html += `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                            ${role}
-                         </span>`;
-            });
-            
-            rolesList.innerHTML = html;
-            rolesList.classList.remove('hidden');
-            noRolesMsg.classList.add('hidden');
-        } else {
-            rolesList.innerHTML = '';
-            rolesList.classList.add('hidden');
-            noRolesMsg.classList.remove('hidden');
-        }
-        
-        // Mostrar modal
-        document.getElementById('rolesModal').classList.remove('hidden');
-        document.getElementById('rolesModal').classList.add('flex');
-    }
-
-    // 2. DETECTAR CLIC EN SUSPENDER
+    // Detectar clic en botón "Suspender"
     if (event.target.closest('.btn-suspender')) {
         event.preventDefault();
         const form = event.target.closest('form');
@@ -283,7 +228,7 @@ document.addEventListener('click', function(event) {
         });
     }
     
-    // 3. DETECTAR CLIC EN ACTIVAR
+    // Detectar clic en botón "Activar"
     if (event.target.closest('.btn-activar')) {
         event.preventDefault();
         const form = event.target.closest('form');
@@ -302,27 +247,6 @@ document.addEventListener('click', function(event) {
                 form.submit();
             }
         });
-    }
-});
-</script>
-
-<script>
-// Cerrar modal
-function closeUserModal() {
-    document.getElementById('rolesModal').classList.remove('flex');
-    document.getElementById('rolesModal').classList.add('hidden');
-}
-
-// Asignar eventos para cerrar
-document.getElementById('closeUserModal').addEventListener('click', closeUserModal);
-
-// Cerrar con tecla ESC
-document.addEventListener('keydown', function(event) {
-    const modal = document.getElementById('rolesModal');
-    const isModalVisible = !modal.classList.contains('hidden');
-    
-    if (isModalVisible && event.key === 'Escape') {
-        closeUserModal();
     }
 });
 </script>

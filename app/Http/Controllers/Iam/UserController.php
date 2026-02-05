@@ -73,14 +73,15 @@ class UserController extends Controller
             'full_name' => $request->full_name,
             'status' => $request->status,
             'unit_id' => $request->unit_id,
+            'provincia' => $request->provincia,
+            'canton' => $request->canton,
             'created_at' => now()
         ];
 
         $user = AppUser::create($datos);
 
-        // Lógica similar a RoleController::store
-        if ($request->has('roles')) {
-            $user->roles()->sync($request->roles);
+        if ($request->filled('role_id')) {
+            $user->roles()->sync([$request->role_id]);
         }
 
         return redirect()->route('users.index')->with('message', 'Usuario creado exitosamente');
@@ -158,13 +159,15 @@ class UserController extends Controller
             'email' => $request->email,
             'full_name' => $request->full_name,
             'status' => $request->status,
-            'unit_id' => $request->unit_id
+            'unit_id' => $request->unit_id,
+            'provincia' => $request->provincia,
+            'canton' => $request->canton
         ];
 
         $user->update($datos);
         
-        // Lógica similar a RoleController::update
-        $user->roles()->sync($request->roles ?? []);
+        $rolesToSync = $request->filled('role_id') ? [$request->role_id] : [];
+        $user->roles()->sync($rolesToSync);
         
         return redirect()->route('users.index')->with('message', 'Usuario actualizado exitosamente');
     }

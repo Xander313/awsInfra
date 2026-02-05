@@ -16,6 +16,8 @@ class AppUser extends Model
         'email',
         'full_name',
         'status',
+        'provincia',
+        'canton',
         'last_login_at',
         'created_at',
     ];
