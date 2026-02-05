@@ -4,6 +4,7 @@ namespace App\Models\Privacy;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Privacy\DsarRequest;
+use App\Models\Document\DocumentVersion;
 
 class DsarEvidence extends Model
 {
@@ -23,10 +24,26 @@ class DsarEvidence extends Model
         'attached_at' => 'datetime',
     ];
 
-    // Relación con la solicitud DSAR
+    // 🔗 Relación con DSAR
     public function dsarRequest()
     {
-        return $this->belongsTo(DsarRequest::class, 'dsar_id', 'dsar_id');
+        return $this->belongsTo(
+            DsarRequest::class,
+            'dsar_id',
+            'dsar_id'
+        );
+    }
+
+    // 🔗 Relación con VERSION de documento (CLAVE)
+    public function documentVersion()
+    {
+        return $this->belongsTo(
+            DocumentVersion::class,
+            'doc_ver_id',
+            'doc_ver_id'
+        );
     }
 }
+
+
 

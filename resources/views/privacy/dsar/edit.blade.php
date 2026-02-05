@@ -7,7 +7,6 @@
 <div class="bg-white border rounded p-5">
     <h2 class="text-lg font-bold mb-4">Editar Solicitud DSAR</h2>
 
-    {{-- ERRORES BACKEND --}}
     @if ($errors->any())
         <div class="bg-red-100 border border-red-300 text-red-700 p-3 rounded mb-4">
             <strong>Hay errores en el formulario:</strong>
@@ -34,12 +33,14 @@
                         :class="tab==='details' ? 'border-b-2 border-blue-600 font-bold' : ''">
                     Detalles
                 </button>
+
                 <button type="button"
                         @click="tab='status'"
                         class="px-4 py-2"
                         :class="tab==='status' ? 'border-b-2 border-blue-600 font-bold' : ''">
                     Estado
                 </button>
+
                 <button type="button"
                         @click="showEvidence = !showEvidence"
                         class="px-4 py-2 ml-auto bg-gray-200 rounded hover:bg-gray-300">
@@ -53,6 +54,7 @@
                     <label class="block text-sm font-medium">Titular</label>
                     <input type="text"
                            value="{{ $dsar->subject->full_name ?? '' }}"
+                           readonly
                            disabled
                            class="w-full border rounded p-2 bg-gray-100">
                 </div>
@@ -79,7 +81,7 @@
                     <label class="block text-sm font-medium">Fecha límite</label>
                     <input type="date"
                            name="due_at"
-                           value="{{ old('due_at', optional($dsar->due_at)->format('Y-m-d')) }}"
+                           value="{{ optional($dsar->due_at)->format('Y-m-d') }}"
                            class="w-full border rounded p-2"
                            required>
                 </div>
@@ -90,15 +92,9 @@
                 <div>
                     <label class="block text-sm font-medium">Estado</label>
                     <select name="status" class="w-full border rounded p-2" required>
-                        <option value="PENDING" {{ $dsar->status === 'PENDING' ? 'selected' : '' }}>
-                            Pendiente
-                        </option>
-                        <option value="IN_PROGRESS" {{ $dsar->status === 'IN_PROGRESS' ? 'selected' : '' }}>
-                            En proceso
-                        </option>
-                        <option value="CLOSED" {{ $dsar->status === 'CLOSED' ? 'selected' : '' }}>
-                            Cerrado
-                        </option>
+                        <option value="PENDING" {{ $dsar->status === 'PENDING' ? 'selected' : '' }}>Pendiente</option>
+                        <option value="IN_PROGRESS" {{ $dsar->status === 'IN_PROGRESS' ? 'selected' : '' }}>En proceso</option>
+                        <option value="CLOSED" {{ $dsar->status === 'CLOSED' ? 'selected' : '' }}>Cerrado</option>
                     </select>
                 </div>
 
@@ -108,19 +104,9 @@
                               rows="3"
                               class="w-full border rounded p-2">{{ old('resolution_summary', $dsar->resolution_summary) }}</textarea>
                 </div>
-
-                @if($dsar->status === 'CLOSED')
-                <div>
-                    <label class="block text-sm font-medium">Fecha de cierre</label>
-                    <input type="date"
-                           name="closed_at"
-                           value="{{ optional($dsar->closed_at)->format('Y-m-d') }}"
-                           class="w-full border rounded p-2">
-                </div>
-                @endif
             </div>
 
-            {{-- BOTONES DSAR --}}
+            {{-- BOTONES --}}
             <div class="flex justify-end gap-3 mt-6">
                 <a href="{{ route('dsar.index') }}"
                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
@@ -134,23 +120,30 @@
             </div>
         </form>
 
-        {{-- SECCIÓN EVIDENCIAS --}}
+        {{-- EVIDENCIAS --}}
         <div x-show="showEvidence" class="mt-6 p-4 border rounded bg-gray-50">
             <h3 class="font-semibold mb-3">Evidencias</h3>
 
-            {{-- LISTADO DE EVIDENCIAS EXISTENTES --}}
+            {{-- LISTADO --}}
             <ul class="mb-4">
                 @forelse($dsar->evidences as $e)
                     <li class="flex justify-between items-center py-1 border-b">
-                        <span>{{ $e->description }} (Documento ID: {{ $e->doc_ver_id }})</span>
-                        <span class="text-gray-500 text-sm">{{ optional($e->attached_at)->format('Y-m-d H:i') }}</span>
+                        <span>
+                            {{ $e->description }}
+                            (
+                            {{ $e->documentVersion?->document?->title ?? 'Documento eliminado' }}
+                            )
+                        </span>
+                        <span class="text-gray-500 text-sm">
+                            {{ optional($e->attached_at)->format('Y-m-d H:i') }}
+                        </span>
                     </li>
                 @empty
                     <li class="text-gray-500">No hay evidencias agregadas.</li>
                 @endforelse
             </ul>
 
-            {{-- FORMULARIO AGREGAR EVIDENCIA --}}
+            {{-- AGREGAR --}}
             <form method="POST" action="{{ route('dsar.evidence.store', $dsar->dsar_id) }}">
                 @csrf
                 <input type="hidden" name="dsar_id" value="{{ $dsar->dsar_id }}">
@@ -162,7 +155,7 @@
                             <option value="">Seleccione un documento</option>
                             @foreach($documents as $doc)
                                 <option value="{{ $doc->doc_ver_id }}">
-                                    Documento {{ $doc->doc_ver_id }}
+                                    {{ $doc->document->title }} (v{{ $doc->version_no }})
                                 </option>
                             @endforeach
                         </select>
@@ -170,7 +163,8 @@
 
                     <div>
                         <label class="block text-sm font-medium">Descripción</label>
-                        <input type="text" name="description"
+                        <input type="text"
+                               name="description"
                                class="w-full border rounded p-2"
                                placeholder="Descripción de la evidencia">
                     </div>
@@ -184,12 +178,8 @@
         </div>
     </div>
 </div>
-
-{{-- FONT AWESOME --}}
-<link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-
 @endsection
+
 
 
 

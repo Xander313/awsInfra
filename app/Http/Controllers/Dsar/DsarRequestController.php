@@ -8,31 +8,43 @@ use Illuminate\Http\Request;
 use App\Models\Privacy\DsarRequest;
 use App\Models\Privacy\DataSubject;
 use App\Models\IAM\AppUser;
-use App\Models\Privacy\DocumentVersion;
+use App\Models\Document\DocumentVersion;
 
 class DsarRequestController extends Controller
 {
-    // Listado de DSARs
+    
     public function index()
     {
-        $dsars = DsarRequest::with(['subject', 'assignedUser', 'evidences'])
-            ->orderBy('received_at', 'desc')
-            ->get();
+        $dsars = DsarRequest::with([
+            'subject',
+            'assignedUser',
+            'evidences.documentVersion.document'
+        ])
+        ->orderBy('received_at', 'desc')
+        ->get();
 
         return view('privacy.dsar.index', compact('dsars'));
     }
 
-    // Crear nuevo DSAR
+    
     public function create()
     {
-        $subjects = DataSubject::orderBy('full_name')->get();
-        $users    = AppUser::orderBy('full_name')->get();
-        $documents = DocumentVersion::orderBy('doc_ver_id')->get();
+        $subjects  = DataSubject::orderBy('full_name')->get();
+        $users     = AppUser::orderBy('full_name')->get();
 
-        return view('privacy.dsar.create', compact('subjects', 'users', 'documents'));
+        
+        $documents = DocumentVersion::with('document')
+            ->where('active_flag', true)
+            ->orderBy('doc_ver_id')
+            ->get();
+
+        return view(
+            'privacy.dsar.create',
+            compact('subjects', 'users', 'documents')
+        );
     }
 
-    // Guardar nuevo DSAR
+    // 💾 Guardar
     public function store(Request $request)
     {
         $request->validate([
@@ -44,8 +56,8 @@ class DsarRequestController extends Controller
             'assigned_to_user_id' => 'nullable|exists:' . AppUser::class . ',user_id',
         ]);
 
-        $dsar = DsarRequest::create([
-            'org_id' => 1, // luego lo haces dinámico
+        DsarRequest::create([
+            'org_id' => 1,
             'subject_id' => $request->subject_id,
             'request_type' => $request->request_type,
             'channel' => $request->channel,
@@ -60,17 +72,29 @@ class DsarRequestController extends Controller
             ->with('exito', 'Solicitud DSAR creada correctamente');
     }
 
-    // Editar DSAR
+    
     public function edit(DsarRequest $dsar)
     {
-        $subjects = DataSubject::orderBy('full_name')->get();
-        $users    = AppUser::orderBy('full_name')->get();
-        $documents = DocumentVersion::orderBy('doc_ver_id')->get(); // importante para evidencias
+        
+        $dsar->load([
+            'evidences.documentVersion.document'
+        ]);
 
-        return view('privacy.dsar.edit', compact('dsar', 'subjects', 'users', 'documents'));
+        $subjects  = DataSubject::orderBy('full_name')->get();
+        $users     = AppUser::orderBy('full_name')->get();
+
+        $documents = DocumentVersion::with('document')
+            ->where('active_flag', true)
+            ->orderBy('doc_ver_id')
+            ->get();
+
+        return view(
+            'privacy.dsar.edit',
+            compact('dsar', 'subjects', 'users', 'documents')
+        );
     }
 
-    // Actualizar DSAR
+    
     public function update(Request $request, DsarRequest $dsar)
     {
         $request->validate([
@@ -97,3 +121,4 @@ class DsarRequestController extends Controller
             ->with('exito', 'Solicitud DSAR actualizada');
     }
 }
+

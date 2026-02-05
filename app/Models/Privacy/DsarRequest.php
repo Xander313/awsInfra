@@ -3,6 +3,9 @@
 namespace App\Models\Privacy;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Privacy\DataSubject;
+use App\Models\Privacy\DsarEvidence;
+use App\Models\IAM\AppUser;
 
 class DsarRequest extends Model
 {
@@ -39,32 +42,38 @@ class DsarRequest extends Model
         );
     }
 
-    // 👉 ASIGNADO
+    // 👉 USUARIO ASIGNADO
     public function assignedUser()
     {
         return $this->belongsTo(
-            \App\Models\IAM\AppUser::class,
+            AppUser::class,
             'assigned_to_user_id',
             'user_id'
         );
     }
 
-    // 👉 ESTADO EN ESPAÑOL (ACCESSOR)
+    // 👉 ESTADO EN ESPAÑOL (CORREGIDO A MAYÚSCULAS)
     public function getStatusLabelAttribute()
     {
         return match ($this->status) {
-            'pending'     => 'Pendiente',
-            'in_progress' => 'En proceso',
-            'closed'      => 'Cerrado',
-            default       => ucfirst($this->status),
+            'PENDING'      => 'Pendiente',
+            'IN_PROGRESS' => 'En proceso',
+            'CLOSED'      => 'Cerrado',
+            default       => $this->status,
         };
     }
 
+    // 👉 EVIDENCIAS
     public function evidences()
     {
-        return $this->hasMany(DsarEvidence::class, 'dsar_id', 'dsar_id');
+        return $this->hasMany(
+            DsarEvidence::class,
+            'dsar_id',
+            'dsar_id'
+        );
     }
 }
+
 
 
 
