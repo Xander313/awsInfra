@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\IAM\AppUser; // <--- Usamos el modelo correcto
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Validation\Rule; // <--- Necesario para validar listas
 
 class RegisterController extends Controller
 {
@@ -21,20 +22,44 @@ class RegisterController extends Controller
     // PASO 1: valida + genera código + envía correo + guarda en sesión
     public function register(Request $request)
     {
+        // Cargar ubicaciones desde la configuración
+        $ubicaciones = config('ecuador.ubicaciones');
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            // FIX: Agregamos 'pgsql.' al inicio para que detecte la conexión correcta
+            // y no confunda el esquema 'iam' con una conexión.
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:pgsql.iam.app_user,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            
+            // Validaciones de Provincia y Cantón
+            'provincia' => ['required', Rule::in(array_keys($ubicaciones))],
+            'canton' => [
+                'required',
+                function ($attribute, $value, $fail) use ($request, $ubicaciones) {
+                    $provincia = $request->provincia;
+                    // Validar que el cantón pertenezca a la provincia seleccionada
+                    if (isset($ubicaciones[$provincia]) && !in_array($value, $ubicaciones[$provincia])) {
+                        $fail("El cantón seleccionado no es válido para la provincia de $provincia.");
+                    }
+                },
+            ],
+        ], [
+            'email.unique' => 'Este correo ya está registrado en el sistema.',
+            'provincia.required' => 'Seleccione una provincia.',
+            'canton.required' => 'Seleccione un cantón.'
         ]);
 
         // Código de 6 dígitos
         $code = (string) random_int(100000, 999999);
 
-        // Guarda datos "pendientes" (NO guardes password plano)
+        // Guarda datos "pendientes" (incluyendo ubicación)
         Session::put('pending_register', [
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'provincia' => $validated['provincia'],
+            'canton' => $validated['canton'],
         ]);
 
         // Guarda el código hasheado + expiración
@@ -99,16 +124,21 @@ class RegisterController extends Controller
         $data = Session::get('pending_register');
 
         // Re-chequeo de email por si alguien se registró mientras tanto
-        if (User::where('email', $data['email'])->exists()) {
+        // Usamos también 'pgsql.iam.app_user' o el modelo AppUser
+        if (AppUser::where('email', $data['email'])->exists()) {
             Session::forget(['pending_register', 'register_code_hash', 'register_code_expires_at']);
             return redirect()->route('login')->withErrors(['email' => 'Ese correo ya está registrado. Inicia sesión.']);
         }
 
-        $user = User::create([
-            'name' => $data['name'],
+        // Crear en AppUser
+        $user = AppUser::create([
+            'full_name' => $data['name'], // Mapeamos 'name' del form a 'full_name' de la tabla
             'email' => $data['email'],
             'password' => $data['password'],
-            'email_verified_at' => now(), // opcional pero recomendado si ya verificaste
+            'provincia' => $data['provincia'],
+            'canton' => $data['canton'],
+            'status' => 'activo', // Estado por defecto
+            'created_at' => now(),
         ]);
 
         Session::forget(['pending_register', 'register_code_hash', 'register_code_expires_at']);

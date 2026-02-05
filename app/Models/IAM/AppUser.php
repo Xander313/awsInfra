@@ -2,10 +2,10 @@
 
 namespace App\Models\IAM;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class AppUser extends Model
+class AppUser extends Authenticatable
 {
     protected $table = 'iam.app_user';
     protected $primaryKey = 'user_id';
@@ -18,12 +18,20 @@ class AppUser extends Model
         'status',
         'provincia',
         'canton',
+        'password',
         'last_login_at',
-        'created_at',
+        'created_at'
     ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
     protected $casts = [
         'last_login_at' => 'datetime',
-        'created_at' => 'datetime'
+        'created_at' => 'datetime',
+        'password' => 'hashed'
     ];
 
     public function roles(): BelongsToMany
