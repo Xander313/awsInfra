@@ -40,11 +40,19 @@ Route::middleware('guest')->group(function () {
     // Login
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->name('login.post');
-    
-    // Registro
+
+    // Registro (PASO 1: enviar código)
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [RegisterController::class, 'register'])->name('register.post');
+
+    // Verificación (PASO 2: confirmar código y crear usuario)
+    Route::get('/verify-email', [RegisterController::class, 'showVerifyForm'])->name('verify_email.form');
+    Route::post('/verify-email', [RegisterController::class, 'verifyCode'])->name('verify_email.post');
+
+    // (Opcional) reenviar código
+    Route::post('/verify-email/resend', [RegisterController::class, 'resendCode'])->name('verify_email.resend');
 });
+
 
 // Logout (solo para usuarios autenticados)
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
