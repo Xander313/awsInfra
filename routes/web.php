@@ -3,6 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Privacy\ProcessingActivityController;
 
+
+use App\Http\Middleware\SingleSession;
+
+
 // rutas para auth
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -28,6 +32,11 @@ use App\Http\Controllers\Privacyfase4\RecipientController;
 
 use App\Http\Controllers\Document\DocumentController;
 use App\Http\Controllers\Privacy\CountryController;
+
+
+
+use App\Http\Middleware\SingleTab;
+
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -57,7 +66,17 @@ Route::middleware('guest')->group(function () {
 // Logout (solo para usuarios autenticados)
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', SingleSession::class, SingleTab::class])->group(function () {
+
+    Route::get('/tab/claim', function () {
+        return response()->json(['ok' => true]);
+    })->name('tab.claim');
+
+
+Route::get('/forbidden', function () {
+    abort(403, 'La aplicación ya está siendo usada por otro usuario.');
+})->name('forbidden');
+
     // Dashboard Routes - SIN middleware
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/api/dashboard/kpis', [DashboardController::class, 'apiKPIs'])->name('dashboard.api.kpis');

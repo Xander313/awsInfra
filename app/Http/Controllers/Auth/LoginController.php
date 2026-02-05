@@ -6,6 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+use Illuminate\Support\Facades\Cache;
+
+
+
 class LoginController extends Controller
 {
     public function showLoginForm()
@@ -31,13 +35,20 @@ class LoginController extends Controller
         ])->onlyInput('email');
     }
 
-    public function logout(Request $request)
-    {
-        Auth::logout();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+public function logout(Request $request)
+{
+    $uid = Auth::id();
 
-        return redirect('/');
-    }
+    Cache::forget('single_session_active');
+    Cache::forget('single_tab_user_'.$uid);
+
+    Auth::logout();
+
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return redirect('/');
+}
+
 }

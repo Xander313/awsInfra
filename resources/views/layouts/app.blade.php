@@ -706,6 +706,53 @@ function confirmLogout() {
     });
 }
 </script>
+
+
+
+
+
 @stack('scripts')
+
+
+
+<script>
+(function () {
+  let tabId = sessionStorage.getItem('tab_id');
+  if (!tabId) {
+    tabId = (crypto?.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random()));
+    sessionStorage.setItem('tab_id', tabId);
+  }
+
+  // axios si existe
+  if (window.axios) {
+    window.axios.defaults.headers.common['X-TAB-ID'] = tabId;
+  }
+
+  // fetch siempre
+  const _fetch = window.fetch;
+  window.fetch = function(input, init = {}) {
+    init.headers = init.headers || {};
+    if (init.headers instanceof Headers) init.headers.set('X-TAB-ID', tabId);
+    else init.headers['X-TAB-ID'] = tabId;
+    return _fetch(input, init);
+  };
+
+  // claim para bloquear otras pestañas
+  fetch('/tab/claim', { headers: { 'X-TAB-ID': tabId, 'Accept': 'application/json' } })
+.then(r => {
+  if (r.status === 403) {
+    window.location.href = '/forbidden';
+  }
+})
+    .catch(() => {});
+})();
+</script>
+
+
+
+
+
+
+
 </body>
 </html>
