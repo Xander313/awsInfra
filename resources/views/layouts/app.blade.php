@@ -220,7 +220,7 @@
                     </div>
                     <div class="leading-tight">
                         <div class="text-sm font-semibold text-gray-900 truncate max-w-[160px]">
-                            {{ auth()->user()->name ?? 'Usuario' }}
+                            {{ auth()->user()->full_name ?? 'Usuario' }}
                         </div>
                         <div class="text-xs text-gray-500 truncate max-w-[160px]">
                             {{ auth()->user()->email ?? 'sesión' }}
@@ -355,7 +355,7 @@
                     {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 2)) }}
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-gray-900 truncate">{{ auth()->user()->name ?? 'Usuario' }}</p>
+                    <p class="text-sm font-semibold text-gray-900 truncate">{{ auth()->user()->full_name ?? 'Usuario' }}</p>
                     <p class="text-xs text-gray-600 truncate">Sesión activa</p>
                 </div>
             </div>
