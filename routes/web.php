@@ -84,13 +84,13 @@ Route::get('/forbidden', function () {
 })->name('forbidden');
 
     // Dashboard Routes - SIN middleware
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/api/dashboard/kpis', [DashboardController::class, 'apiKPIs'])->name('dashboard.api.kpis');
-    Route::get('/api/dashboard/alerts', [DashboardController::class, 'apiAlerts'])->name('dashboard.api.alerts');
-    Route::get('/api/dashboard/activity', [DashboardController::class, 'apiRecentActivity'])->name('dashboard.api.activity');
+    Route::get('/panel', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/api/panel/kpis', [DashboardController::class, 'apiKPIs'])->name('dashboard.api.kpis');
+    Route::get('/api/panel/alerts', [DashboardController::class, 'apiAlerts'])->name('dashboard.api.alerts');
+    Route::get('/api/panel/activity', [DashboardController::class, 'apiRecentActivity'])->name('dashboard.api.activity');
 
     // ✅ NUEVA RUTA AGREGADA (SOLO ESTA)
-    Route::get('/api/dashboard/modal-data/{type}', [DashboardController::class, 'apiModalData'])->name('dashboard.api.modal-data');
+    Route::get('/api/panel/modal-data/{type}', [DashboardController::class, 'apiModalData'])->name('dashboard.api.modal-data');
 
     // RAT Routes
     Route::resource('rat', ProcessingActivityController::class);

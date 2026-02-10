@@ -748,11 +748,41 @@ function confirmLogout() {
 })();
 </script>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // TIEMPO DE INACTIVIDAD: 5 Minutos (300,000 milisegundos)
+        const tiempoInactividad = 5 * 60 * 1000; 
+        let temporizador;
 
+        // Función que ejecuta el logout
+        function finalizarSesion() {
+            // Usamos SweetAlert (que ya tienes instalado) para avisar brevemente o cerrar directo
+            let form = document.getElementById('logout-form');
+            if (form) {
+                form.submit(); // Envía el formulario de logout que ya existe en tu navbar
+            } else {
+                window.location.href = '/iniciar-sesion'; // Respaldo por si falla el form
+            }
+        }
 
+        // Función para reiniciar el contador si hay actividad
+        function reiniciarTemporizador() {
+            clearTimeout(temporizador);
+            temporizador = setTimeout(finalizarSesion, tiempoInactividad);
+        }
 
+        // Eventos que consideramos "actividad"
+        const eventosActividad = ['mousemove', 'keypress', 'mousedown', 'touchstart', 'scroll'];
 
+        // Escuchar eventos en todo el documento
+        eventosActividad.forEach(evento => {
+            document.addEventListener(evento, reiniciarTemporizador, true);
+        });
 
+        // Iniciar el temporizador al cargar la página
+        reiniciarTemporizador();
+    });
+</script>
 
 </body>
 </html>
