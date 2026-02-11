@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use App\Http\Controllers\Privacy\ProcessingActivityController;
 
 
@@ -72,16 +74,29 @@ Route::middleware('guest')->group(function () {
 // Logout (solo para usuarios autenticados)
 Route::post('/cerrar-sesion', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
 
-Route::middleware(['auth', SingleSession::class, SingleTab::class])->group(function () {
+Route::middleware(['auth', SingleSession::class])->group(function () {
+    Route::get('/forbidden', function () {
+        return view('forbidden');
+    })->name('forbidden');
 
-    Route::get('/tab/claim', function () {
+    Route::post('/tab/force-claim', function (Request $request) {
+        $tabId = $request->header('X-TAB-ID');
+        if (!$tabId) {
+            return response()->json(['ok' => false, 'error' => 'missing_tab_id'], 422);
+        }
+
+        $userId = $request->user()->id;
+        $key = "single_tab_user_{$userId}";
+
+        Cache::put($key, $tabId, now()->addMinutes(30));
+
         return response()->json(['ok' => true]);
-    })->name('tab.claim');
+    })->name('tab.force-claim');
 
-
-Route::get('/forbidden', function () {
-    abort(403, 'La aplicación ya está siendo usada por otro usuario.');
-})->name('forbidden');
+    Route::middleware([SingleTab::class])->group(function () {
+        Route::get('/tab/claim', function () {
+            return response()->json(['ok' => true]);
+        })->name('tab.claim');
 
     // Dashboard Routes - SIN middleware
     Route::get('/panel', [DashboardController::class, 'index'])->name('dashboard');
@@ -239,5 +254,6 @@ Route::get('/forbidden', function () {
     // Country
     Route::prefix('privacy')->name('privacy.')->group(function() {
         Route::resource('country', CountryController::class);
+    });
     });
 });

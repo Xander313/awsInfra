@@ -723,6 +723,10 @@ function confirmLogout() {
     sessionStorage.setItem('tab_id', tabId);
   }
 
+  const TAB_LOCK_KEY = 'sgpd_active_tab';
+  const TAB_LOCK_TTL_MS = 15000;
+  const HEARTBEAT_MS = 5000;
+
   // axios si existe
   if (window.axios) {
     window.axios.defaults.headers.common['X-TAB-ID'] = tabId;
@@ -737,14 +741,55 @@ function confirmLogout() {
     return _fetch(input, init);
   };
 
-  // claim para bloquear otras pestañas
-  fetch('/tab/claim', { headers: { 'X-TAB-ID': tabId, 'Accept': 'application/json' } })
-.then(r => {
-  if (r.status === 403) {
-    window.location.href = '/forbidden';
+  function readLock() {
+    try {
+      const raw = localStorage.getItem(TAB_LOCK_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
+    }
   }
-})
-    .catch(() => {});
+
+  function writeLock() {
+    try {
+      localStorage.setItem(TAB_LOCK_KEY, JSON.stringify({ tabId, ts: Date.now() }));
+    } catch (_) {
+      // no-op
+    }
+  }
+
+  function otherTabActive() {
+    const lock = readLock();
+    if (!lock || !lock.tabId || !lock.ts) return false;
+    const fresh = (Date.now() - lock.ts) < TAB_LOCK_TTL_MS;
+    return fresh && lock.tabId !== tabId;
+  }
+
+  // claim para bloquear otras pestañas (evita loop en /forbidden)
+  const isForbiddenPage = window.location.pathname === '/forbidden';
+  if (!isForbiddenPage) {
+    if (otherTabActive()) {
+      window.location.href = '/forbidden';
+      return;
+    }
+
+    writeLock();
+    setInterval(writeLock, HEARTBEAT_MS);
+    window.addEventListener('storage', (e) => {
+      if (e.key !== TAB_LOCK_KEY || !e.newValue) return;
+      if (otherTabActive()) {
+        window.location.href = '/forbidden';
+      }
+    });
+
+    fetch('/tab/claim', { headers: { 'X-TAB-ID': tabId, 'Accept': 'application/json' } })
+      .then(r => {
+        if (r.status === 403) {
+          window.location.href = '/forbidden';
+        }
+      })
+      .catch(() => {});
+  }
 })();
 </script>
 
@@ -759,6 +804,11 @@ function confirmLogout() {
             // Usamos SweetAlert (que ya tienes instalado) para avisar brevemente o cerrar directo
             let form = document.getElementById('logout-form');
             if (form) {
+                try {
+                    localStorage.setItem('sgpd_logout_reason', 'inactividad');
+                } catch (_) {
+                    // no-op
+                }
                 form.submit(); // Envía el formulario de logout que ya existe en tu navbar
             } else {
                 window.location.href = '/iniciar-sesion'; // Respaldo por si falla el form

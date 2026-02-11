@@ -147,5 +147,25 @@
             });
         });
     </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                const reason = localStorage.getItem('sgpd_logout_reason');
+                if (reason === 'inactividad') {
+                    localStorage.removeItem('sgpd_logout_reason');
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Sesión cerrada',
+                        text: 'Tu sesión se cerró automáticamente porque alcanzó el límite de inactividad.',
+                        confirmButtonText: 'Entendido',
+                        allowOutsideClick: true,
+                        allowEscapeKey: true
+                    });
+                }
+            } catch (_) {
+                // no-op
+            }
+        });
+    </script>
 </body>
 </html>
