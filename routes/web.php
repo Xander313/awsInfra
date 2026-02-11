@@ -202,6 +202,8 @@ Route::middleware(['auth'])->group(function () {
             'destroy' => 'users.destroy'
         ])->parameters(['usuarios' => 'id']);
 
+    Route::get('usuarios/{id}/roles/historial', [UserController::class, 'rolesHistory'])->name('users.roles.history');
+
     Route::resource('roles', RoleController::class);
 
     Route::resource('permisos', PermissionController::class)
