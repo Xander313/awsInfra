@@ -104,6 +104,17 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex items-center gap-2">
+                                <a href="{{ route('users.roles.history', $usuario->user_id) }}" 
+                                   class="inline-flex items-center gap-1 text-purple-600 hover:text-purple-900"
+                                   title="Ver historial de roles">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Historial
+                                </a>
+
+                                <span class="text-gray-300">|</span>
+
                                 <a href="{{ route('users.edit', $usuario->user_id) }}" 
                                    class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
