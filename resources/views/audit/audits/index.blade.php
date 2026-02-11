@@ -87,7 +87,7 @@ document.querySelectorAll('.change-status').forEach(function(el) {
         e.preventDefault();
 
         const auditId = this.dataset.id;
-        const status = this.dataset.status; // ✅ SIEMPRE inglés
+        const status = this.dataset.status; 
 
         fetch(`/auditorias/${auditId}/cambiar-estado`, {
             method: 'POST',
