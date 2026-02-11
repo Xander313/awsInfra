@@ -27,6 +27,26 @@ class LoginController extends Controller
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
 
+            $userId = Auth::id();
+            $current = $request->session()->getId();
+            $key = "single_session_user_{$userId}";
+            $active = Cache::get($key);
+
+            if ($active && config('session.driver') === 'file') {
+                $path = storage_path('framework/sessions/'.$active);
+                if (!file_exists($path)) {
+                    Cache::forget($key);
+                    $active = null;
+                }
+            }
+
+            if ($active && $active !== $current) {
+                $request->session()->put('session_conflict_active', $active);
+                return redirect()->route('session.conflict');
+            }
+
+            Cache::put($key, $current, now()->addMinutes(30));
+
             return redirect()->intended(route('dashboard'));
         }
 
@@ -39,9 +59,14 @@ class LoginController extends Controller
 public function logout(Request $request)
 {
     $uid = Auth::id();
+    $current = $request->session()->getId();
 
-    Cache::forget('single_session_active');
-    Cache::forget('single_tab_user_'.$uid);
+    $key = "single_session_user_{$uid}";
+    $active = Cache::get($key);
+    if ($active && $active === $current) {
+        Cache::forget($key);
+        Cache::forget('single_tab_session_'.$current);
+    }
 
     Auth::logout();
 

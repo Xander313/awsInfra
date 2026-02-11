@@ -30,12 +30,18 @@
             preConfirm: async () => {
                 try {
                     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    let tabId = sessionStorage.getItem('tab_id');
+                    if (!tabId) {
+                        tabId = (crypto?.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random()));
+                        sessionStorage.setItem('tab_id', tabId);
+                    }
                     const response = await fetch('/tab/force-claim', {
                         method: 'POST',
                         headers: {
                             'Accept': 'application/json',
                             'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': token
+                            'X-CSRF-TOKEN': token,
+                            'X-TAB-ID': tabId
                         }
                     });
 

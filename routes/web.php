@@ -74,7 +74,7 @@ Route::middleware('guest')->group(function () {
 // Logout (solo para usuarios autenticados)
 Route::post('/cerrar-sesion', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
 
-Route::middleware(['auth', SingleSession::class])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/forbidden', function () {
         return view('forbidden');
     })->name('forbidden');
@@ -85,15 +85,51 @@ Route::middleware(['auth', SingleSession::class])->group(function () {
             return response()->json(['ok' => false, 'error' => 'missing_tab_id'], 422);
         }
 
-        $userId = $request->user()->id;
-        $key = "single_tab_user_{$userId}";
+        $sessionId = $request->session()->getId();
+        $key = "single_tab_session_{$sessionId}";
 
         Cache::put($key, $tabId, now()->addMinutes(30));
 
         return response()->json(['ok' => true]);
     })->name('tab.force-claim');
 
-    Route::middleware([SingleTab::class])->group(function () {
+    Route::get('/session/conflict', function (Request $request) {
+        if (!$request->session()->has('session_conflict_active')) {
+            return redirect()->route('dashboard');
+        }
+        return view('auth.session_conflict');
+    })->name('session.conflict');
+
+    Route::post('/session/takeover', function (Request $request) {
+        $user = $request->user();
+        $current = $request->session()->getId();
+        $key = "single_session_user_{$user->id}";
+
+        $previous = $request->session()->get('session_conflict_active');
+
+        Cache::put($key, $current, now()->addMinutes(30));
+
+        if ($previous && $previous !== $current) {
+            try {
+                $request->session()->getHandler()->destroy($previous);
+            } catch (\Throwable $e) {
+                // no-op: si falla, el middleware SingleSession cerrará en el siguiente request
+            }
+            Cache::forget("single_tab_session_{$previous}");
+        }
+
+        $request->session()->forget('session_conflict_active');
+
+        $redirect = redirect()->intended(route('dashboard'))->getTargetUrl();
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true, 'redirect' => $redirect]);
+        }
+
+        return redirect($redirect);
+    })->name('session.takeover');
+
+    Route::middleware([SingleSession::class, SingleTab::class])->group(function () {
         Route::get('/tab/claim', function () {
             return response()->json(['ok' => true]);
         })->name('tab.claim');
@@ -165,9 +201,6 @@ Route::middleware(['auth', SingleSession::class])->group(function () {
             'update' => 'users.update',
             'destroy' => 'users.destroy'
         ])->parameters(['usuarios' => 'id']);
-
-    Route::get('usuarios/{id}/roles/historial', [UserController::class, 'rolesHistory'])
-        ->name('users.roles.history');
 
     Route::resource('roles', RoleController::class);
 

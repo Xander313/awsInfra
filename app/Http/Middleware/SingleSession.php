@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class SingleSession
@@ -13,7 +14,8 @@ class SingleSession
     {
         if (!$request->user()) return $next($request);
 
-        $key = 'single_session_active';
+        $userId = $request->user()->id;
+        $key = "single_session_user_{$userId}";
         $active = Cache::get($key);
 
         // si el dueño murió (incógnito cerrado, etc.), liberar
@@ -25,7 +27,16 @@ class SingleSession
         $current = $request->session()->getId();
 
         if ($active && $active !== $current) {
-            abort(403, 'La aplicación ya está siendo usada por otro usuario.');
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Sesión cerrada por inicio en otro dispositivo.'], 403);
+            }
+
+            return redirect()->route('login')
+                ->with('error', 'Tu sesión fue cerrada porque iniciaste sesión en otro dispositivo.');
         }
 
         Cache::put($key, $current, now()->addMinutes(30));
@@ -35,7 +46,10 @@ class SingleSession
 
     private function sessionStillExists(string $sessionId): bool
     {
-        // SOLO si SESSION_DRIVER=file
+        if (config('session.driver') !== 'file') {
+            return true;
+        }
+
         return file_exists(storage_path('framework/sessions/'.$sessionId));
     }
 }

@@ -16,8 +16,8 @@ class SingleTab
         $tabId = $request->header('X-TAB-ID');
         if (!$tabId) return $next($request);
 
-        $userId = $request->user()->id;
-        $key = "single_tab_user_{$userId}";
+        $sessionId = $request->session()->getId();
+        $key = "single_tab_session_{$sessionId}";
         $active = Cache::get($key);
 
         if ($active && $active !== $tabId) {
