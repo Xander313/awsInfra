@@ -147,36 +147,117 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('rat', ProcessingActivityController::class);
 
     // Org Routes
-    Route::post('/orgs/check-ruc', [OrgController::class, 'checkRuc'])->name('orgs.check-ruc');
-    Route::get('/org/select/{org}', function ($orgId) {
-        session(['org_id' => $orgId]);
-        return redirect()->back()->with('success', 'Organización activada.');
-    })->name('orgs.select');
-    Route::resource('orgs', OrgController::class);
+    Route::prefix('organizaciones')->group(function () {
+
+        Route::post('/check-ruc', [OrgController::class, 'checkRuc'])->name('orgs.check-ruc');
+
+        Route::get('/seleccionar/{org}', function ($orgId) {
+            session(['org_id' => $orgId]);
+            return redirect()->back()->with('success', 'Organización activada.');
+        })->name('orgs.select');
+
+        Route::get('/', [OrgController::class, 'index'])->name('orgs.index');
+        Route::get('/crear', [OrgController::class, 'create'])->name('orgs.create');
+        Route::post('/', [OrgController::class, 'store'])->name('orgs.store');
+
+        Route::get('/{org}', [OrgController::class, 'show'])->name('orgs.show');
+        Route::get('/{org}/editar', [OrgController::class, 'edit'])->name('orgs.edit');
+        Route::put('/{org}', [OrgController::class, 'update'])->name('orgs.update');
+        Route::delete('/{org}', [OrgController::class, 'destroy'])->name('orgs.destroy');
+    });
+
 
     // Data Subjects Routes
-    Route::resource('data-subjects', DataSubjectController::class);
-    Route::get('/data-subjects/{dataSubject}/consent/create', [DataSubjectController::class, 'createConsent'])
-        ->name('data-subjects.consent.create');
-    Route::post('/data-subjects/{dataSubject}/consent', [DataSubjectController::class, 'storeConsent'])
-        ->name('data-subjects.consent.store');
-    Route::post('/consent/{consent}/revoke', [DataSubjectController::class, 'revokeConsent'])
+    Route::prefix('titulares')->group(function () {
+
+        // CRUD titulares (mantiene nombres data-subjects.*)
+        Route::get('/', [DataSubjectController::class, 'index'])->name('data-subjects.index');
+        Route::get('/crear', [DataSubjectController::class, 'create'])->name('data-subjects.create');
+        Route::post('/', [DataSubjectController::class, 'store'])->name('data-subjects.store');
+
+        Route::get('/{dataSubject}', [DataSubjectController::class, 'show'])->name('data-subjects.show');
+        Route::get('/{dataSubject}/editar', [DataSubjectController::class, 'edit'])->name('data-subjects.edit');
+        Route::put('/{dataSubject}', [DataSubjectController::class, 'update'])->name('data-subjects.update');
+        Route::delete('/{dataSubject}', [DataSubjectController::class, 'destroy'])->name('data-subjects.destroy');
+
+        // Consentimientos (anidados al titular)
+        Route::get('/{dataSubject}/consentimiento/crear', [DataSubjectController::class, 'createConsent'])
+            ->name('data-subjects.consent.create');
+
+        Route::post('/{dataSubject}/consentimiento', [DataSubjectController::class, 'storeConsent'])
+            ->name('data-subjects.consent.store');
+    });
+    // Revocar consentimiento (NO depende del titular en la URL)
+    Route::post('/consentimientos/{consent}/revocar', [DataSubjectController::class, 'revokeConsent'])
         ->name('data-subjects.consent.revoke');
 
     // Risk routes
     require __DIR__.'/risk.php';
 
     // Audit Routes
-    Route::prefix('audit')->group(function(){
-        Route::resource('audits', AuditController::class);
-        Route::post('audits/{audit}/change-status', [AuditController::class, 'changeStatus'])->name('audits.changeStatus');
-        Route::resource('controls', ControlController::class);
-        Route::resource('findings', AuditFindingController::class);
-        Route::post('/findings/{finding}/change-status', [AuditFindingController::class, 'changeStatus'])->name('findings.changeStatus');
-        Route::resource('corrective_actions', CorrectiveActionController::class);
-        Route::post('/corrective_actions/{action}/change-status', [CorrectiveActionController::class, 'changeStatus'])
-            ->name('corrective_actions.changeStatus');
+    Route::prefix('auditorias')->group(function(){
+
+        // =========================
+        // CONTROLES
+        // =========================
+        Route::prefix('controles')->group(function () {
+            Route::get('/', [ControlController::class, 'index'])->name('controls.index');
+            Route::get('/crear', [ControlController::class, 'create'])->name('controls.create');
+            Route::post('/', [ControlController::class, 'store'])->name('controls.store');
+            Route::get('/{control}', [ControlController::class, 'show'])->name('controls.show');
+            Route::get('/{control}/editar', [ControlController::class, 'edit'])->name('controls.edit');
+            Route::put('/{control}', [ControlController::class, 'update'])->name('controls.update');
+            Route::delete('/{control}', [ControlController::class, 'destroy'])->name('controls.destroy');
+        });
+    
+        // =========================
+        // HALLAZGOS
+        // =========================
+        Route::prefix('hallazgos')->group(function () {
+            Route::get('/', [AuditFindingController::class, 'index'])->name('findings.index');
+            Route::get('/crear', [AuditFindingController::class, 'create'])->name('findings.create');
+            Route::post('/', [AuditFindingController::class, 'store'])->name('findings.store');
+            Route::get('/{finding}', [AuditFindingController::class, 'show'])->name('findings.show');
+            Route::get('/{finding}/editar', [AuditFindingController::class, 'edit'])->name('findings.edit');
+            Route::put('/{finding}', [AuditFindingController::class, 'update'])->name('findings.update');
+            Route::delete('/{finding}', [AuditFindingController::class, 'destroy'])->name('findings.destroy');
+    
+            Route::post('/{finding}/cambiar-estado', [AuditFindingController::class, 'changeStatus'])
+                ->name('findings.changeStatus');
+        });
+    
+        // =========================
+        // ACCIONES CORRECTIVAS
+        // =========================
+        Route::prefix('acciones-correctivas')->group(function () {
+            Route::get('/', [CorrectiveActionController::class, 'index'])->name('corrective_actions.index');
+            Route::get('/crear', [CorrectiveActionController::class, 'create'])->name('corrective_actions.create');
+            Route::post('/', [CorrectiveActionController::class, 'store'])->name('corrective_actions.store');
         
+            Route::get('/{action}', [CorrectiveActionController::class, 'show'])->name('corrective_actions.show');
+            Route::get('/{action}/editar', [CorrectiveActionController::class, 'edit'])->name('corrective_actions.edit');
+            Route::put('/{action}', [CorrectiveActionController::class, 'update'])->name('corrective_actions.update');
+            Route::delete('/{action}', [CorrectiveActionController::class, 'destroy'])->name('corrective_actions.destroy');
+        
+            Route::post('/{action}/cambiar-estado', [CorrectiveActionController::class, 'changeStatus'])
+                ->name('corrective_actions.changeStatus');
+        });
+        
+        
+    
+        // =========================
+        // AUDITORÍAS (SIEMPRE AL FINAL)
+        // =========================
+        Route::get('/', [AuditController::class, 'index'])->name('audits.index');
+        Route::get('/crear', [AuditController::class, 'create'])->name('audits.create');
+        Route::post('/', [AuditController::class, 'store'])->name('audits.store');
+        Route::get('/{audit}', [AuditController::class, 'show'])->name('audits.show');
+        Route::get('/{audit}/editar', [AuditController::class, 'edit'])->name('audits.edit');
+        Route::put('/{audit}', [AuditController::class, 'update'])->name('audits.update');
+        Route::delete('/{audit}', [AuditController::class, 'destroy'])->name('audits.destroy');
+    
+        Route::post('/{audit}/cambiar-estado', [AuditController::class, 'changeStatus'])
+            ->name('audits.changeStatus');
     });
 
     // DSAR Routes

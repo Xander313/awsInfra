@@ -6,7 +6,6 @@
         <h1>Controles</h1>
         <a href="{{ route('controls.create') }}" class="btn btn-success">Nuevo Control</a>
     </div>
-
     <table class="table table-striped table-hover">
         <thead class="table-dark">
             <tr>

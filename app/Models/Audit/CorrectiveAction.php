@@ -3,8 +3,8 @@
 namespace App\Models\Audit;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Audit\AuditFinding; // <- importar el modelo de hallazgo
-use App\Models\IAM\AppUser;       // <- importar el modelo de usuario
+use App\Models\Audit\AuditFinding;
+use App\Models\IAM\AppUser;
 
 class CorrectiveAction extends Model
 {

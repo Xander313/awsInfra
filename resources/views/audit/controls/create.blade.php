@@ -6,12 +6,29 @@
 <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/additional-methods.min.js"></script>
 
-<div class="container mt-5">
-    <h1 class="mb-4">{{ isset($control) ? 'Editar Control' : 'Nuevo Control' }}</h1>
+@php
+    $isEdit = !is_null($control);
+@endphp
 
-    <form id="frm_control" action="{{ isset($control) ? route('controls.update', $control->control_id) : route('controls.store') }}" method="POST">
+<div class="container mt-5">
+    <h1 class="mb-4">{{ $isEdit ? 'Editar Control' : 'Nuevo Control' }}</h1>
+
+    {{-- Errores backend --}}
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <form id="frm_control"
+          action="{{ $isEdit ? route('controls.update', $control->control_id) : route('controls.store') }}"
+          method="POST">
         @csrf
-        @if(isset($control)) @method('PUT') @endif
+        @if($isEdit) @method('PUT') @endif
 
         <div class="mb-3">
             <label class="form-label">Organización activa</label>
@@ -20,17 +37,20 @@
 
         <div class="mb-3">
             <label class="form-label">Código</label>
-            <input type="text" class="form-control" name="code" value="{{ old('code', $control->code ?? '') }}">
+            <input type="text" class="form-control" name="code"
+                   value="{{ old('code', $control->code ?? '') }}">
         </div>
 
         <div class="mb-3">
             <label class="form-label">Nombre</label>
-            <input type="text" class="form-control" name="name" value="{{ old('name', $control->name ?? '') }}">
+            <input type="text" class="form-control" name="name"
+                   value="{{ old('name', $control->name ?? '') }}">
         </div>
 
         <div class="mb-3">
             <label class="form-label">Tipo</label>
-            <input type="text" class="form-control" name="control_type" value="{{ old('control_type', $control->control_type ?? '') }}">
+            <input type="text" class="form-control" name="control_type"
+                   value="{{ old('control_type', $control->control_type ?? '') }}">
         </div>
 
         <div class="mb-3">
@@ -43,14 +63,26 @@
             <select class="form-select" name="owner_user_id">
                 <option value="">-- Seleccione --</option>
                 @foreach($users as $user)
-                    <option value="{{ $user->user_id }}" {{ old('owner_user_id', $control->owner_user_id ?? '') == $user->user_id ? 'selected' : '' }}>
+                    <option value="{{ $user->user_id }}"
+                        {{ (string) old('owner_user_id', $control->owner_user_id ?? '') === (string) $user->user_id ? 'selected' : '' }}>
                         {{ $user->full_name }}
                     </option>
                 @endforeach
             </select>
         </div>
 
-        <button type="submit" class="btn btn-primary">{{ isset($control) ? 'Actualizar' : 'Guardar' }}</button>
+        {{-- ✅ Para que UPDATE no falle (porque tu update exige status) --}}
+        @if($isEdit)
+        <div class="mb-3">
+            <label class="form-label">Estado</label>
+            <select class="form-select" name="status" required>
+                <option value="Activo" {{ old('status', $control->status ?? 'Activo') === 'Activo' ? 'selected' : '' }}>Activo</option>
+                <option value="Inactivo" {{ old('status', $control->status ?? '') === 'Inactivo' ? 'selected' : '' }}>Inactivo</option>
+            </select>
+        </div>
+        @endif
+
+        <button type="submit" class="btn btn-primary">{{ $isEdit ? 'Actualizar' : 'Guardar' }}</button>
         <a href="{{ route('controls.index') }}" class="btn btn-secondary ms-2">Cancelar</a>
     </form>
 </div>

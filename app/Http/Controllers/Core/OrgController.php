@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Core\Org;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Database\QueryException;
 
 class OrgController extends Controller
 {
@@ -15,7 +16,8 @@ class OrgController extends Controller
     public function index()
     {
         $orgs = Org::orderBy('name')->get();
-        $activeOrgId = session('org_id'); // organización activa en sesión
+        $activeOrgId = session('org_id');
+
         return view('core.org.index', compact('orgs', 'activeOrgId'));
     }
 
@@ -45,7 +47,7 @@ class OrgController extends Controller
 
         $org = Org::create($request->only('name', 'ruc', 'industry'));
 
-        // Activar la nueva organización automáticamente
+        // Activar automáticamente la nueva organización
         $this->setActiveOrg($org->org_id);
 
         return redirect()
@@ -54,7 +56,7 @@ class OrgController extends Controller
     }
 
     /**
-     * Mostrar detalles de una organización
+     * Mostrar detalles
      */
     public function show(Org $org)
     {
@@ -62,7 +64,7 @@ class OrgController extends Controller
     }
 
     /**
-     * Formulario para editar organización
+     * Formulario editar
      */
     public function edit(Org $org)
     {
@@ -70,7 +72,7 @@ class OrgController extends Controller
     }
 
     /**
-     * Actualizar datos de una organización
+     * Actualizar organización
      */
     public function update(Request $request, Org $org)
     {
@@ -97,22 +99,37 @@ class OrgController extends Controller
      */
     public function destroy(Org $org)
     {
-        // Evita borrar la organización activa
+        // 1️⃣ No permitir eliminar la organización activa
         if (session('org_id') == $org->org_id) {
             return redirect()
                 ->route('orgs.index')
                 ->with('error', 'No puedes eliminar la organización activa.');
         }
 
-        $org->delete();
+        // 2️⃣ Validar si tiene auditorías relacionadas
+        if ($org->audits()->exists()) {
+            return redirect()
+                ->route('orgs.index')
+                ->with('error', 'No se puede eliminar la organización porque tiene auditorías asociadas.');
+        }
 
-        return redirect()
-            ->route('orgs.index')
-            ->with('success', 'Organización eliminada correctamente.');
+        try {
+            $org->delete();
+
+            return redirect()
+                ->route('orgs.index')
+                ->with('success', 'Organización eliminada correctamente.');
+
+        } catch (QueryException $e) {
+
+            return redirect()
+                ->route('orgs.index')
+                ->with('error', 'No se puede eliminar la organización porque existen datos relacionados.');
+        }
     }
 
     /**
-     * Activar una organización (helper)
+     * Activar organización
      */
     public function activate(Org $org)
     {
@@ -122,16 +139,19 @@ class OrgController extends Controller
             ->route('orgs.index')
             ->with('success', "Organización '{$org->name}' activada correctamente.");
     }
+
+    /**
+     * Validación AJAX de RUC
+     */
     public function checkRuc(Request $request)
     {
-        $exists = \App\Models\Core\Org::where('ruc', $request->ruc)->exists();
+        $exists = Org::where('ruc', $request->ruc)->exists();
 
         return response()->json(!$exists);
     }
 
-
     /**
-     * Método privado para actualizar la sesión de organización activa
+     * Helper privado para activar organización en sesión
      */
     private function setActiveOrg($orgId)
     {

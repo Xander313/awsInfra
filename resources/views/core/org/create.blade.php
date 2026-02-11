@@ -52,7 +52,7 @@
                         <input
                             type="text"
                             name="ruc"
-                            placeholder="RUC (opcional)"
+                            placeholder="RUC"
                             class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 text-sm"
                         >
                     </div>

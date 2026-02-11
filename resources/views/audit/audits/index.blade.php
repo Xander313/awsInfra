@@ -1,10 +1,25 @@
 @extends('layouts.app')
 
 @section('content')
-<!-- Bootstrap CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<!-- Bootstrap JS (Popper incluido) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+@php
+    $estadoLabel = [
+        'PLANNED' => 'Planificada',
+        'IN_PROGRESS' => 'En progreso',
+        'COMPLETED' => 'Completada',
+        'CLOSED' => 'Cerrada',
+    ];
+
+    $estadoBtnClass = [
+        'PLANNED' => 'btn-info',
+        'IN_PROGRESS' => 'btn-warning',
+        'COMPLETED' => 'btn-success',
+        'CLOSED' => 'btn-danger',
+    ];
+@endphp
+
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>Auditorías</h1>
@@ -31,19 +46,24 @@
                 <td>{{ $audit->auditor->full_name ?? 'N/A' }}</td>
                 <td>
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm
-                            {{ $audit->status === 'PLANNED' ? 'btn-info' : ($audit->status === 'IN_PROGRESS' ? 'btn-warning' : 'btn-success') }}">
-                            {{ ucfirst(strtolower($audit->status)) }}
+                        <button type="button" class="btn btn-sm {{ $estadoBtnClass[$audit->status] ?? 'btn-secondary' }}">
+                            {{ $estadoLabel[$audit->status] ?? $audit->status }}
                         </button>
-                        <button type="button" class="btn btn-sm btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+
+                        <button type="button" class="btn btn-sm btn-secondary dropdown-toggle dropdown-toggle-split"
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             <span class="visually-hidden">Cambiar estado</span>
                         </button>
+
                         <ul class="dropdown-menu">
                             @foreach(['PLANNED','IN_PROGRESS','COMPLETED','CLOSED'] as $status)
                                 @if($status !== $audit->status)
                                 <li>
-                                    <a class="dropdown-item change-status" href="#" data-id="{{ $audit->audit_id }}" data-status="{{ $status }}">
-                                        {{ ucfirst(strtolower($status)) }}
+                                    <a class="dropdown-item change-status"
+                                       href="#"
+                                       data-id="{{ $audit->audit_id }}"
+                                       data-status="{{ $status }}">
+                                        {{ $estadoLabel[$status] ?? $status }}
                                     </a>
                                 </li>
                                 @endif
@@ -65,10 +85,11 @@
 document.querySelectorAll('.change-status').forEach(function(el) {
     el.addEventListener('click', function(e) {
         e.preventDefault();
-        const auditId = this.dataset.id;
-        const status = this.dataset.status;
 
-        fetch(`/audit/audits/${auditId}/change-status`, { // ✅ ruta corregida
+        const auditId = this.dataset.id;
+        const status = this.dataset.status; // ✅ SIEMPRE inglés
+
+        fetch(`/auditorias/${auditId}/cambiar-estado`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -79,16 +100,22 @@ document.querySelectorAll('.change-status').forEach(function(el) {
         .then(res => res.json())
         .then(res => {
             if (res.success) {
-                // Cambiar el texto y color del botón sin recargar
-                const btn = this.closest('.btn-group').querySelector('button:first-child');
-                btn.textContent = res.status.charAt(0) + res.status.slice(1).toLowerCase();
+                const estados = {
+                    'PLANNED': 'Planificada',
+                    'IN_PROGRESS': 'En progreso',
+                    'COMPLETED': 'Completada',
+                    'CLOSED': 'Cerrada'
+                };
 
-                // Ajustar clase de color
-                btn.classList.remove('btn-info', 'btn-warning', 'btn-success');
+                const btn = this.closest('.btn-group').querySelector('button:first-child');
+                btn.textContent = estados[res.status] ?? res.status;
+
+                btn.classList.remove('btn-info', 'btn-warning', 'btn-success', 'btn-danger', 'btn-secondary');
                 if (res.status === 'PLANNED') btn.classList.add('btn-info');
                 else if (res.status === 'IN_PROGRESS') btn.classList.add('btn-warning');
                 else if (res.status === 'COMPLETED') btn.classList.add('btn-success');
                 else if (res.status === 'CLOSED') btn.classList.add('btn-danger');
+                else btn.classList.add('btn-secondary');
             } else {
                 alert('Error al cambiar el estado');
             }
@@ -96,7 +123,5 @@ document.querySelectorAll('.change-status').forEach(function(el) {
         .catch(() => alert('Error al cambiar el estado'));
     });
 });
-
-
 </script>
 @endsection

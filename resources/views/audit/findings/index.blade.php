@@ -2,8 +2,22 @@
 
 @section('content')
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<!-- Bootstrap JS (Popper incluido) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+@php
+    $estadoLabel = [
+        'open' => 'Abierto',
+        'in_progress' => 'En progreso',
+        'closed' => 'Cerrado',
+    ];
+
+    $estadoBtnClass = [
+        'open' => 'btn-info',
+        'in_progress' => 'btn-warning',
+        'closed' => 'btn-success',
+    ];
+@endphp
+
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>Hallazgos</h1>
@@ -30,19 +44,24 @@
                 <td>{{ $finding->severity }}</td>
                 <td>
                     <div class="btn-group">
-                        <button type="button" class="btn btn-sm
-                            {{ $finding->status == 'open' ? 'btn-info' : ($finding->status == 'in_progress' ? 'btn-warning' : 'btn-success') }}">
-                            {{ ucfirst(str_replace('_', ' ', $finding->status)) }}
+                        <button type="button" class="btn btn-sm {{ $estadoBtnClass[$finding->status] ?? 'btn-secondary' }}">
+                            {{ $estadoLabel[$finding->status] ?? $finding->status }}
                         </button>
-                        <button type="button" class="btn btn-sm btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+
+                        <button type="button" class="btn btn-sm btn-secondary dropdown-toggle dropdown-toggle-split"
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             <span class="visually-hidden">Cambiar estado</span>
                         </button>
+
                         <ul class="dropdown-menu">
                             @foreach(['open','in_progress','closed'] as $status)
                                 @if($status !== $finding->status)
                                 <li>
-                                    <a class="dropdown-item change-status" href="#" data-id="{{ $finding->finding_id }}" data-status="{{ $status }}">
-                                        {{ ucfirst(str_replace('_', ' ', $status)) }}
+                                    <a class="dropdown-item change-status"
+                                       href="#"
+                                       data-id="{{ $finding->finding_id }}"
+                                       data-status="{{ $status }}">
+                                        {{ $estadoLabel[$status] ?? $status }}
                                     </a>
                                 </li>
                                 @endif
@@ -64,10 +83,11 @@
 document.querySelectorAll('.change-status').forEach(function(el) {
     el.addEventListener('click', function(e) {
         e.preventDefault();
-        const findingId = this.dataset.id;
-        const status = this.dataset.status;
 
-        fetch(`/audit/findings/${findingId}/change-status`, {
+        const findingId = this.dataset.id;
+        const status = this.dataset.status; // ✅ open/in_progress/closed
+
+        fetch(`/auditorias/hallazgos/${findingId}/cambiar-estado`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -78,16 +98,25 @@ document.querySelectorAll('.change-status').forEach(function(el) {
         .then(res => res.json())
         .then(res => {
             if (res.success) {
+                const estados = {
+                    open: 'Abierto',
+                    in_progress: 'En progreso',
+                    closed: 'Cerrado'
+                };
+
                 const btn = this.closest('.btn-group').querySelector('button:first-child');
-                btn.textContent = res.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-                btn.classList.remove('btn-info', 'btn-warning', 'btn-success');
+                btn.textContent = estados[res.status] ?? res.status;
+
+                btn.classList.remove('btn-info', 'btn-warning', 'btn-success', 'btn-secondary');
                 if (res.status === 'open') btn.classList.add('btn-info');
                 else if (res.status === 'in_progress') btn.classList.add('btn-warning');
                 else if (res.status === 'closed') btn.classList.add('btn-success');
+                else btn.classList.add('btn-secondary');
             } else {
                 alert('Error al cambiar el estado');
             }
-        });
+        })
+        .catch(() => alert('Error al cambiar el estado'));
     });
 });
 </script>

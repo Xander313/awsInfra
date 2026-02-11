@@ -18,7 +18,8 @@
             <select class="form-select" name="audit_id">
                 <option value="">-- Seleccione --</option>
                 @foreach($audits as $audit)
-                    <option value="{{ $audit->audit_id }}" {{ isset($finding) && $finding->audit_id == $audit->audit_id ? 'selected' : '' }}>
+                    <option value="{{ $audit->audit_id }}"
+                        {{ old('audit_id', $finding->audit_id ?? '') == $audit->audit_id ? 'selected' : '' }}>
                         {{ $audit->audit_type }}
                     </option>
                 @endforeach
@@ -30,7 +31,8 @@
             <select class="form-select" name="control_id">
                 <option value="">-- Ninguno --</option>
                 @foreach($controls as $control)
-                    <option value="{{ $control->control_id }}" {{ isset($finding) && $finding->control_id == $control->control_id ? 'selected' : '' }}>
+                    <option value="{{ $control->control_id }}"
+                        {{ old('control_id', $finding->control_id ?? '') == $control->control_id ? 'selected' : '' }}>
                         {{ $control->name }}
                     </option>
                 @endforeach
@@ -46,9 +48,9 @@
             <label class="form-label">Estado</label>
             <select class="form-select" name="status">
                 <option value="">-- Seleccione --</option>
-                <option value="open" {{ isset($finding) && $finding->status == 'open' ? 'selected' : '' }}>Abierto</option>
-                <option value="in_progress" {{ isset($finding) && $finding->status == 'in_progress' ? 'selected' : '' }}>En Progreso</option>
-                <option value="closed" {{ isset($finding) && $finding->status == 'closed' ? 'selected' : '' }}>Cerrado</option>
+                <option value="open" {{ old('status', $finding->status ?? '') == 'open' ? 'selected' : '' }}>Abierto</option>
+                <option value="in_progress" {{ old('status', $finding->status ?? '') == 'in_progress' ? 'selected' : '' }}>En progreso</option>
+                <option value="closed" {{ old('status', $finding->status ?? '') == 'closed' ? 'selected' : '' }}>Cerrado</option>
             </select>
         </div>
 
@@ -67,14 +69,14 @@ $(function() {
     $("#frm_finding").validate({
         rules: {
             audit_id: { required: true },
-            control_id: { required: true }, 
+            // ✅ control_id es opcional (porque en backend es nullable)
+            control_id: { required: false },
             severity: { required: true, minlength: 3, maxlength: 50 },
             status: { required: true },
             description: { required: true, minlength: 10, maxlength: 1000 }
         },
         messages: {
             audit_id: { required: "Seleccione una auditoría" },
-            control_id: { required: "Seleccione un control" }, 
             severity: { required: "Ingrese la severidad", minlength: "Mínimo 3 caracteres", maxlength: "Máximo 50 caracteres" },
             status: { required: "Seleccione un estado" },
             description: { required: "Ingrese la descripción", minlength: "Mínimo 10 caracteres", maxlength: "Máximo 1000 caracteres" }

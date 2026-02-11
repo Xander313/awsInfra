@@ -45,7 +45,8 @@
         {{-- Fecha planeada --}}
         <div class="mb-3">
             <label class="form-label">Fecha Planeada</label>
-            <input type="datetime-local" class="form-control" name="planned_at" value="{{ isset($audit) && $audit->planned_at ? date('Y-m-d\TH:i', strtotime($audit->planned_at)) : '' }}">
+            <input type="datetime-local" class="form-control" name="planned_at"
+                value="{{ isset($audit) && $audit->planned_at ? date('Y-m-d\TH:i', strtotime($audit->planned_at)) : '' }}">
         </div>
 
         {{-- Estado --}}
@@ -67,24 +68,54 @@
 
 <script>
 $(function() {
-    // Método pattern personalizado
+
+    // Método pattern personalizado (se mantiene)
     $.validator.addMethod("pattern", function(value, element, param) {
         return this.optional(element) || param.test(value);
     }, "Formato inválido");
+
+    // 🔹 Fecha y hora NO pueden estar en el pasado
+    $.validator.addMethod("notPastDateTime", function(value, element) {
+        if (!value) return true;
+
+        let selectedDateTime = new Date(value);
+        let now = new Date();
+
+        return selectedDateTime >= now;
+    }, "La fecha y hora planeadas no pueden ser anteriores al momento actual.");
+
+    // 🔹 Fecha no puede exceder 1 año a partir de hoy
+    $.validator.addMethod("maxOneYearAhead", function(value, element) {
+        if (!value) return true;
+
+        let selectedDateTime = new Date(value);
+        let maxAllowed = new Date();
+        maxAllowed.setFullYear(maxAllowed.getFullYear() + 1);
+
+        return selectedDateTime <= maxAllowed;
+    }, "La fecha planeada no puede exceder el límite permitido de un año.");
 
     $("#frm_audit").validate({
         rules: {
             audit_type: { required: true, maxlength:30, pattern: /^[a-zA-Z0-9\s\-]+$/ },
             scope: { required: true, minlength: 10, maxlength: 1000 },
             auditor_user_id: { required: true },
-            planned_at: { required: true },
+            planned_at: {
+                required: true,
+                notPastDateTime: true,
+                maxOneYearAhead: true
+            },
             status: { required: true }
         },
         messages: {
             audit_type: { required: "Obligatorio", minlength:10, maxlength: "Máximo 30 caracteres", pattern: "Solo letras, números y guiones" },
             scope: { required: "Obligatorio", minlength: "Mínimo 10 caracteres", maxlength: "Máximo 1000 caracteres" },
             auditor_user_id: { required: "Seleccione un auditor" },
-            planned_at: { required: "Ingrese fecha planeada" },
+            planned_at: {
+                required: "Ingrese la fecha y hora planeadas para la auditoría.",
+                notPastDateTime: "No se permite planificar una auditoría en una fecha u hora ya transcurridas.",
+                maxOneYearAhead: "La fecha planeada excede el período máximo permitido."
+            },
             status: { required: "Seleccione un estado" }
         },
 

@@ -9,11 +9,14 @@ use Illuminate\Http\Request;
 
 class AuditController extends Controller
 {
-    /**
-     * Mostrar listado de auditorías
-     */
     public function index()
     {
+        if (!session()->has('org_id')) {
+            return redirect()
+                ->route('orgs.index')
+                ->with('warning', 'Active una organización para visualizar sus auditorías.');
+        }
+
         $audits = Audit::where('org_id', session('org_id'))
             ->with('auditor', 'org')
             ->orderBy('planned_at')
@@ -22,20 +25,26 @@ class AuditController extends Controller
         return view('audit.audits.index', compact('audits'));
     }
 
-    /**
-     * Mostrar formulario de creación
-     */
     public function create()
     {
+        if (!session()->has('org_id')) {
+            return redirect()
+                ->route('orgs.index')
+                ->with('warning', 'Debe activar una organización antes de registrar auditorías.');
+        }
+
         $users = AppUser::all();
         return view('audit.audits.create', compact('users'));
     }
 
-    /**
-     * Guardar nueva auditoría
-     */
     public function store(Request $request)
     {
+        if (!session()->has('org_id')) {
+            return redirect()
+                ->route('orgs.index')
+                ->with('warning', 'Debe activar una organización antes de registrar auditorías.');
+        }
+
         $request->validate([
             'audit_type' => 'required|string|max:255',
             'scope' => 'nullable|string',
@@ -57,31 +66,51 @@ class AuditController extends Controller
             ->with('success', 'Auditoría creada correctamente.');
     }
 
-    /**
-     * Mostrar detalle de una auditoría
-     */
+    public function changeStatus(Request $request, Audit $audit)
+    {
+        $data = $request->validate([
+            'status' => 'required|string|in:PLANNED,IN_PROGRESS,COMPLETED,CLOSED',
+        ]);
+
+        $this->authorizeAudit($audit);
+
+        $audit->status = $data['status'];
+        $audit->save();
+
+        return response()->json([
+            'success' => true,
+            'status' => $audit->status
+        ]);
+    }
+
+    private function authorizeAudit(Audit $audit)
+    {
+        if (!session()->has('org_id') || (int)$audit->org_id !== (int)session('org_id')) {
+            abort(403, 'Acceso no autorizado.');
+        }
+    }
+
     public function show(Audit $audit)
     {
         $this->authorizeAudit($audit);
-        $audit->load('auditor', 'findings.correctiveActions');
+
+        $audit->load(['org', 'auditor', 'findings']);
 
         return view('audit.audits.show', compact('audit'));
     }
 
-    /**
-     * Mostrar formulario de edición
-     */
+    // ✅ NUEVO: EDIT (usa la MISMA vista create)
     public function edit(Audit $audit)
     {
         $this->authorizeAudit($audit);
+
         $users = AppUser::all();
 
+        // 👇 misma vista, pero ahora con $audit para que entre en "Editar"
         return view('audit.audits.create', compact('audit', 'users'));
     }
 
-    /**
-     * Actualizar auditoría existente
-     */
+    // ✅ NUEVO: UPDATE (para que el formulario de editar guarde cambios)
     public function update(Request $request, Audit $audit)
     {
         $this->authorizeAudit($audit);
@@ -91,66 +120,22 @@ class AuditController extends Controller
             'scope' => 'nullable|string',
             'auditor_user_id' => ['nullable', 'exists:' . AppUser::class . ',user_id'],
             'planned_at' => 'nullable|date',
+            'executed_at' => 'nullable|date',
             'status' => 'required|string|in:PLANNED,IN_PROGRESS,COMPLETED,CLOSED',
         ]);
 
-        $data = $request->only([
-            'audit_type',
-            'scope',
-            'auditor_user_id',
-            'planned_at',
-            'status',
+        $audit->update([
+            'audit_type' => $request->audit_type,
+            'scope' => $request->scope,
+            'auditor_user_id' => $request->auditor_user_id,
+            'planned_at' => $request->planned_at,
+            'executed_at' => $request->executed_at,
+            'status' => $request->status,
         ]);
-
-        if ($request->status === 'CLOSED' && !$audit->executed_at) {
-            $data['executed_at'] = now();
-        }
-
-        $audit->update($data);
 
         return redirect()->route('audits.index')
             ->with('success', 'Auditoría actualizada correctamente.');
     }
-
-    /**
-     * Cambio rápido de estado vía AJAX
-     */
-    public function changeStatus(Request $request, Audit $audit)
-    {
-        $this->authorizeAudit($audit);
-
-        $request->validate([
-            'status' => 'required|string|in:PLANNED,IN_PROGRESS,COMPLETED,CLOSED',
-        ]);
-
-        $audit->status = $request->status;
-
-        if ($request->status === 'CLOSED' && !$audit->executed_at) {
-            $audit->executed_at = now();
-        }
-
-        $audit->save();
-
-        return response()->json([
-            'success' => true,
-            'status' => $audit->status
-        ]);
-    }
-
-
-    /**
-     * Validación de pertenencia a la organización activa
-     */
-    private function authorizeAudit(Audit $audit)
-    {
-        $sessionOrg = session('org_id');
-
-        if (!$sessionOrg) {
-            abort(403, 'No existe organización activa en sesión');
-        }
-
-        if ((int)$audit->org_id !== (int)$sessionOrg) {
-            abort(403, 'Acceso no autorizado a esta auditoría');
-        }
-    }
 }
+
+

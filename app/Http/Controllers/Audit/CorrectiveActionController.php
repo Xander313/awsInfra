@@ -12,6 +12,12 @@ class CorrectiveActionController extends Controller
 {
     public function index()
     {
+        if (!session()->has('org_id')) {
+            return redirect()
+                ->route('orgs.index')
+                ->with('warning', 'Debe activar una organización para visualizar las acciones correctivas.');
+        }
+
         $actions = CorrectiveAction::whereHas('finding.audit', function ($q) {
                 $q->where('org_id', session('org_id'));
             })
@@ -24,10 +30,15 @@ class CorrectiveActionController extends Controller
 
     public function create()
     {
+        if (!session()->has('org_id')) {
+            return redirect()
+                ->route('ors.index')
+                ->with('warning', 'Debe activar una organización antes de registrar acciones correctivas.');
+        }
+
         $findings = AuditFinding::whereHas('audit', function ($q) {
-                $q->where('org_id', session('org_id'));
-            })
-            ->get();
+            $q->where('org_id', session('org_id'));
+        })->get();
 
         $users = AppUser::all();
 
@@ -36,6 +47,12 @@ class CorrectiveActionController extends Controller
 
     public function store(Request $request)
     {
+        if (!session()->has('org_id')) {
+            return redirect()
+                ->route('orgs.index')
+                ->with('warning', 'Debe activar una organización.');
+        }
+
         $request->validate([
             'finding_id' => ['required', 'exists:' . AuditFinding::class . ',finding_id'],
             'owner_user_id' => ['nullable', 'exists:' . AppUser::class . ',user_id'],
@@ -64,18 +81,18 @@ class CorrectiveActionController extends Controller
             ->with('success', 'Acción correctiva creada correctamente.');
     }
 
-    public function show(CorrectiveAction $correctiveAction)
+    public function show(CorrectiveAction $action)
     {
-        $this->authorizeAction($correctiveAction);
+        $this->authorizeAction($action);
 
-        $correctiveAction->load('finding.audit', 'owner');
+        $action->load('finding.audit', 'owner');
 
-        return view('audit.corrective_actions.show', ['action' => $correctiveAction]);
+        return view('audit.corrective_actions.show', ['action' => $action]);
     }
 
-    public function edit(CorrectiveAction $corrective_action)
+    public function edit(CorrectiveAction $action)
     {
-        $this->authorizeAction($corrective_action);
+        $this->authorizeAction($action);
 
         $findings = AuditFinding::whereHas('audit', function ($q) {
             $q->where('org_id', session('org_id'));
@@ -84,15 +101,15 @@ class CorrectiveActionController extends Controller
         $users = AppUser::all();
 
         return view('audit.corrective_actions.create', [
-            'action'   => $corrective_action,
+            'action'   => $action,
             'findings' => $findings,
             'users'    => $users
         ]);
     }
 
-    public function update(Request $request, CorrectiveAction $corrective_action)
+    public function update(Request $request, CorrectiveAction $action)
     {
-        $this->authorizeAction($corrective_action);
+        $this->authorizeAction($action);
 
         $request->validate([
             'finding_id' => ['required', 'exists:' . AuditFinding::class . ',finding_id'],
@@ -103,7 +120,7 @@ class CorrectiveActionController extends Controller
             'outcome' => 'nullable|string',
         ]);
 
-        $corrective_action->update($request->only([
+        $action->update($request->only([
             'finding_id',
             'owner_user_id',
             'due_at',
@@ -121,7 +138,7 @@ class CorrectiveActionController extends Controller
         $this->authorizeAction($action);
 
         $action->update([
-            'status' => 'CERRADA',
+            'status' => 'closed', // 👈 corregido: debe coincidir con tus valores reales
             'closed_at' => now(),
         ]);
 
@@ -129,9 +146,6 @@ class CorrectiveActionController extends Controller
             ->with('success', 'Acción correctiva cerrada correctamente.');
     }
 
-    /**
-     * Cambio rápido de estado vía AJAX
-     */
     public function changeStatus(Request $request, CorrectiveAction $action)
     {
         $this->authorizeAction($action);
@@ -154,18 +168,18 @@ class CorrectiveActionController extends Controller
         ]);
     }
 
-    private function authorizeAction(CorrectiveAction $corrective_action)
+    private function authorizeAction(CorrectiveAction $action)
     {
         if (!session()->has('org_id')) {
-            abort(403, 'No hay organización activa');
+            abort(403, 'No hay organización activa.');
         }
 
-        if (!$corrective_action->finding || !$corrective_action->finding->audit) {
-            abort(404, 'La acción correctiva no está asociada correctamente');
+        if (!$action->finding || !$action->finding->audit) {
+            abort(404, 'La acción correctiva no está asociada correctamente.');
         }
 
-        if ((int) $corrective_action->finding->audit->org_id !== (int) session('org_id')) {
-            abort(403, 'La acción correctiva no pertenece a la organización activa');
+        if ((int) $action->finding->audit->org_id !== (int) session('org_id')) {
+            abort(403, 'La acción correctiva no pertenece a la organización activa.');
         }
     }
 }

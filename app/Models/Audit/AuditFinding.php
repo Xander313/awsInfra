@@ -3,8 +3,6 @@
 namespace App\Models\Audit;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Audit\Audit;
-use App\Models\Audit\Control;
 
 class AuditFinding extends Model
 {
@@ -19,6 +17,12 @@ class AuditFinding extends Model
         'description',
         'status'
     ];
+
+    // ✅ Para que {finding} funcione con finding_id en rutas tipo resource
+    public function getRouteKeyName()
+    {
+        return 'finding_id';
+    }
 
     public function audit()
     {

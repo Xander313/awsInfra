@@ -10,8 +10,8 @@
             <p><strong>Código:</strong> {{ $control->code }}</p>
             <p><strong>Nombre:</strong> {{ $control->name }}</p>
             <p><strong>Tipo:</strong> {{ $control->control_type }}</p>
-            <p><strong>Propietario:</strong> {{ $control->owner->full_name ?? 'N/A' }}</p>
-            <p><strong>Descripción:</strong> {{ $control->description }}</p>
+            <p><strong>Propietario:</strong> {{ $control->owner->full_name ?? 'No asignado' }}</p>
+            <p><strong>Descripción:</strong> {{ $control->description ?? 'Sin descripción' }}</p>
         </div>
     </div>
 
@@ -21,7 +21,7 @@
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 {{ $finding->description }}
                 <span class="badge {{ $finding->status == 'open' ? 'bg-warning' : 'bg-success' }}">
-                    {{ ucfirst($finding->status) }}
+                    {{ $finding->status == 'open' ? 'Abierto' : 'Cerrado' }}
                 </span>
             </li>
         @endforeach

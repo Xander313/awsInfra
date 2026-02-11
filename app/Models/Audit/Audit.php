@@ -22,6 +22,12 @@ class Audit extends Model
         'status'
     ];
 
+    // ✅ IMPORTANTE: para que la ruta {audit} funcione con audit_id
+    public function getRouteKeyName()
+    {
+        return 'audit_id';
+    }
+
     public function org()
     {
         return $this->belongsTo(Org::class, 'org_id');
