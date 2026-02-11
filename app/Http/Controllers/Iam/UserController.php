@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Iam;
-
+use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\Controller;
 use App\Models\IAM\AppUser;
 use App\Models\IAM\Role;
@@ -9,9 +9,42 @@ use App\Models\IAM\UserRoleHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
-class UserController extends Controller
+class UserController extends Controller implements HasMiddleware
 {
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(function ($request, $next) {
+                $user = auth()->user();
+                
+                // Verificamos rol (agregué validación si $user es null por seguridad)
+                if (!$user || !$user->roles()->where('name', 'ADMIN_SISTEMA')->exists()) {
+                    abort(403, 'No tienes permiso para realizar esta acción.');
+                }
+                
+                return $next($request);
+            }, only: ['create', 'store', 'edit', 'update', 'destroy']),
+        ];
+    }
+
+    public function revealPassword(Request $request, $token)
+    {
+        
+        $password = Cache::pull('temp_password_' . $token);
+
+        if (!$password) {
+            abort(403, 'El enlace ha expirado o ya ha sido utilizado.');
+        }
+
+        return view('iam.users.revelar', compact('password'));
+    }
+    
     public function index()
     {
         $users = AppUser::with('roles')->orderBy('user_id')->get();
@@ -20,7 +53,9 @@ class UserController extends Controller
 
     public function create()
     {
-        $roles = Role::orderBy('name')->get();
+        $adminRoleName = 'ADMIN_SISTEMA';
+
+        $roles = Role::where('name', '!=', $adminRoleName)->orderBy('name')->get();
         return view('iam.users.nuevo', compact('roles'));
     }
 
@@ -35,6 +70,8 @@ class UserController extends Controller
                     }
                 }
             ],
+            'full_name' => 'required|max:255',
+            'password' => 'required|min:8|confirmed',
             'status' => 'required|in:activo,suspendido',
             'unit_id' => [
                 'nullable', 'integer',
@@ -56,6 +93,11 @@ class UserController extends Controller
         ], [
             'email.required' => 'Por favor ingrese el email del usuario',
             'email.email' => 'Ingrese un email válido',
+            'full_name.required' => 'Por favor ingrese el nombre completo',
+            'password.required' => 'La contraseña es obligatoria para nuevos usuarios',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres',
+            'password.confirmed' => 'Las contraseñas no coinciden',
+            'full_name.max' => 'Limite de caracteres excedido (255)',
             'status.required' => 'Por favor seleccione el estado del usuario',
         ]);
 
@@ -66,6 +108,7 @@ class UserController extends Controller
         $user = AppUser::create([
             'email' => $request->email,
             'full_name' => $request->full_name,
+            'password' => $request->password,
             'status' => $request->status,
             'unit_id' => $request->unit_id,
             'provincia' => $request->provincia,
@@ -83,6 +126,28 @@ class UserController extends Controller
                 'created_at' => now()
             ]);
         }
+        
+        // Generar token y guardar en Cache por 20 minutos
+        $token = Str::random(40);
+        Cache::put('temp_password_' . $token, $request->password, now()->addMinutes(20));
+
+        // Crear URL firmada temporal
+        $revealUrl = URL::temporarySignedRoute(
+            'users.reveal_password', 
+            now()->addMinutes(20), 
+            ['token' => $token]
+        );
+
+        try {
+            Mail::send('emails.credenciales', [
+                'user' => $user,
+                'revealUrl' => $revealUrl, // Enviamos la URL en lugar de la clave plana
+                'tipo' => 'bienvenida'
+            ], function ($message) use ($user) {
+                $message->to($user->email)
+                        ->subject('Acceso a sus credenciales - SGPD COAC');
+            });
+        } catch (\Exception $e) { }
 
         return redirect()->route('users.index')->with('message', 'Usuario creado exitosamente');
     }
@@ -90,7 +155,9 @@ class UserController extends Controller
     public function edit(string $id)
     {
         $user = AppUser::with('roles')->findOrFail($id);
-        $roles = Role::orderBy('name')->get();
+        
+        $adminRoleName = 'ADMIN_SISTEMA';
+        $roles = Role::where('name', '!=', $adminRoleName)->orderBy('name')->get();
         return view('iam.users.editar', compact('user', 'roles'));
     }
 
@@ -106,6 +173,8 @@ class UserController extends Controller
                     if ($exists) { $fail('El email ya está registrado en el sistema'); }
                 }
             ],
+            'full_name' => 'required|max:255',
+            'password' => 'nullable|min:8|confirmed',
             'status' => 'required|in:activo,suspendido',
             'unit_id' => [
                 'nullable', 'integer',
@@ -128,6 +197,9 @@ class UserController extends Controller
         ], [
             'email.required' => 'Por favor ingrese el email del usuario',
             'email.email' => 'Ingrese un email válido',
+            'full_name.required' => 'Por favor ingrese el nombre completo',
+            'full_name.max' => 'Limite de caracteres excedido (255)',
+            'password.confirmed' => 'Las contraseñas no coinciden',
             'status.required' => 'Por favor seleccione el estado del usuario',
         ]);
 
@@ -135,7 +207,20 @@ class UserController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        $user->update($request->only(['email', 'full_name', 'status', 'unit_id', 'provincia', 'canton']));
+        $dataToUpdate = $request->only(['email', 'full_name', 'status', 'unit_id', 'provincia', 'canton']);
+        // Si intentan poner 'suspendido' a un ADMIN_SISTEMA, lo impedimos
+        if (isset($dataToUpdate['status']) && $dataToUpdate['status'] == 'suspendido') {
+            if ($user->roles()->where('name', 'ADMIN_SISTEMA')->exists()) {
+                return redirect()->back()->withInput()->with('error', 'No se puede suspender la cuenta del Administrador del Sistema.');
+            }
+        }
+        // NUEVO: Lógica condicional para la contraseña
+        $passwordChanged = false;
+        if ($request->filled('password')) {
+            $dataToUpdate['password'] = $request->password; // El modelo lo hasheará
+            $passwordChanged = true;
+        }
+        $user->update($dataToUpdate);
 
         $rolesToSync = $request->filled('role_id') ? [$request->role_id] : [];
         $oldRoles = $user->roles()->pluck('iam.user_role.role_id')->toArray();
@@ -151,6 +236,28 @@ class UserController extends Controller
             ]);
             $user->roles()->sync($rolesToSync);
         }
+
+        if ($passwordChanged) {
+            $token = Str::random(40);
+            Cache::put('temp_password_' . $token, $request->password, now()->addMinutes(20));
+
+            $revealUrl = URL::temporarySignedRoute(
+                'users.reveal_password', 
+                now()->addMinutes(20), 
+                ['token' => $token]
+            );
+
+            try {
+                Mail::send('emails.credenciales', [
+                    'user' => $user,
+                    'revealUrl' => $revealUrl,
+                    'tipo' => 'actualizacion'
+                ], function ($message) use ($user) {
+                    $message->to($user->email)
+                            ->subject('Actualización de credenciales - SGPD');
+                });
+            } catch (\Exception $e) { }
+        }
         
         return redirect()->route('users.index')->with('message', 'Usuario actualizado exitosamente');
     }
@@ -158,8 +265,21 @@ class UserController extends Controller
     public function destroy(string $id)
     {
         $user = AppUser::findOrFail($id);
-        $user->status == 'activo' ? $user->update(['status' => 'suspendido']) : $user->update(['status' => 'activo']);
-        return redirect()->route('users.index')->with('message', 'Estado actualizado');
+
+        if ($user->status == 'activo') {
+            // --- VALIDACIÓN DE SEGURIDAD ---
+            if ($user->roles()->where('name', 'ADMIN_SISTEMA')->exists()) {
+                return redirect()->route('users.index')->with('error', 'No se puede suspender la cuenta del Administrador del Sistema.');
+            }
+            
+            $user->update(['status' => 'suspendido']);
+            $message = 'Usuario suspendido exitosamente';
+        } else {
+            $user->update(['status' => 'activo']);
+            $message = 'Usuario activado exitosamente';
+        }
+
+        return redirect()->route('users.index')->with('message', $message);
     }
 
     public function rolesHistory(Request $request, string $id)

@@ -376,3 +376,7 @@ Route::middleware(['auth'])->group(function () {
     });
     });
 });
+
+Route::get('/seguridad/revelar-clave/{token}', [UserController::class, 'revealPassword'])
+    ->name('users.reveal_password')
+    ->middleware('signed');

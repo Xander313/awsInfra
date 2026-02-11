@@ -2,6 +2,9 @@
 
 @section('title', 'Editar Usuario - SGPD COAC')
 @section('active_key', 'users')
+@php
+    $targetIsAdmin = $user->roles->contains('name', 'ADMIN_SISTEMA');
+@endphp
 
 @section('content')
 <div class="container-fluid px-0">
@@ -33,6 +36,55 @@
                     <input type="email" id="email" name="email" value="{{ old('email', $user->email) }}"
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
                     @error('email') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+
+                {{-- Sección de Seguridad (Opcional) --}}
+                <div class="pt-6 border-t border-gray-100">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Seguridad (Opcional)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                                Nueva Contraseña
+                            </label>
+                            <div class="relative">
+                                <input type="password" id="password" name="password" 
+                                    class="w-full pl-4 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                    placeholder="Dejar en blanco para mantener la actual">
+                                <button type="button" onclick="togglePassword('password', this)" 
+                                        class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-blue-600 focus:outline-none">
+                                    <svg class="w-5 h-5 icon-show" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    <svg class="w-5 h-5 icon-hide hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                    </svg>
+                                </button>
+                            </div>
+                            @error('password') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        
+                        <div>
+                            <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-2">
+                                Confirmar Nueva Contraseña
+                            </label>
+                            <div class="relative">
+                                <input type="password" id="password_confirmation" name="password_confirmation" 
+                                    class="w-full pl-4 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                                <button type="button" onclick="togglePassword('password_confirmation', this)" 
+                                        class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-blue-600 focus:outline-none">
+                                    <svg class="w-5 h-5 icon-show" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    <svg class="w-5 h-5 icon-hide hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500 italic">Solo llene estos campos si desea cambiar la contraseña del usuario. Si los deja vacíos, se mantendrá la clave actual.</p>
                 </div>
 
                 {{-- Nombre Completo --}}
@@ -123,6 +175,24 @@
         const $provinciaSelect = $('#provincia');
         const $cantonSelect = $('#canton');
 
+        // Variable pasada desde Blade
+        const targetIsAdmin = @json($targetIsAdmin);
+        const statusSelect = document.getElementById('status');
+
+        if (statusSelect) {
+            statusSelect.addEventListener('change', function() {
+                if (this.value === 'suspendido' && targetIsAdmin) {
+                    Swal.fire({
+                        title: 'Acción no permitida',
+                        text: 'No se puede cambiar el estado a "Suspendido" porque este usuario es ADMIN_SISTEMA.',
+                        icon: 'error',
+                        confirmButtonColor: '#3b82f6'
+                    });
+                    this.value = 'activo'; // Revertir selección automáticamente
+                }
+            });
+        }
+
         function cargarCantones(provincia) {
             $cantonSelect.empty();
             if (provincia && ubicaciones[provincia]) {
@@ -146,5 +216,22 @@
             errorClass: "text-red-500 text-sm mt-1"
         });
     });
+</script>
+<script>
+    function togglePassword(fieldId, button) {
+        const input = document.getElementById(fieldId);
+        const iconShow = button.querySelector('.icon-show');
+        const iconHide = button.querySelector('.icon-hide');
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            iconShow.classList.add('hidden');
+            iconHide.classList.remove('hidden');
+        } else {
+            input.type = 'password';
+            iconShow.classList.remove('hidden');
+            iconHide.classList.add('hidden');
+        }
+    }
 </script>
 @endsection

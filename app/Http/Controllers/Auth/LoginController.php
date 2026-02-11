@@ -27,6 +27,22 @@ class LoginController extends Controller
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
 
+            // --- NUEVO BLOQUE DE VALIDACIÓN DE ESTADO ---
+            $user = Auth::user();
+            
+            // Si está suspendido y NO es ADMIN_SISTEMA (protección doble)
+            if ($user->status == 'suspendido') {
+                if (!$user->roles()->where('name', 'ADMIN_SISTEMA')->exists()) {
+                    Auth::logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+                    
+                    return back()->withErrors([
+                        'email' => 'Su cuenta ha sido suspendida. Comuníquese con el administrador.',
+                    ])->onlyInput('email');
+                }
+            }
+
             $userId = Auth::id();
             $current = $request->session()->getId();
             $key = "single_session_user_{$userId}";

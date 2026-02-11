@@ -3,6 +3,9 @@
 @section('title', 'Gestión de Usuarios - SGPD COAC')
 @section('active_key', 'users')
 
+@php
+    $isSystemAdmin = auth()->user()->roles->contains('name', 'ADMIN_SISTEMA');
+@endphp
 @section('content')
 <div class="container-fluid px-0">
     <div class="bg-white rounded-lg border border-gray-200 mb-6 p-5">
@@ -11,6 +14,7 @@
                 <h1 class="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
                 <p class="text-gray-600 mt-1">Administra los usuarios del sistema SGPD COAC</p>
             </div>
+            @if($isSystemAdmin)
             <a href="{{ route('users.create') }}" 
                class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -18,6 +22,7 @@
                 </svg>
                 Nuevo Usuario
             </a>
+            @endif
         </div>
     </div>
 
@@ -114,41 +119,47 @@
                                 </a>
 
                                 <span class="text-gray-300">|</span>
-
-                                <a href="{{ route('users.edit', $usuario->user_id) }}" 
-                                   class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                    </svg>
-                                    Editar
-                                </a>
-
-                                <span class="text-gray-300">|</span>
-
-                                @if($usuario->status == 'activo')
-                                <form action="{{ route('users.destroy', $usuario->user_id) }}" method="POST" class="inline form-suspender">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="button" 
-                                            class="inline-flex items-center gap-1 text-amber-600 hover:text-amber-900 btn-suspender">
+                                @if($isSystemAdmin)
+                                    <a href="{{ route('users.edit', $usuario->user_id) }}" 
+                                    class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                         </svg>
-                                        Suspender
-                                    </button>
-                                </form>
+                                        Editar
+                                    </a>
                                 @else
-                                <form action="{{ route('users.destroy', $usuario->user_id) }}" method="POST" class="inline form-activar">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="button" 
-                                            class="inline-flex items-center gap-1 text-green-600 hover:text-green-900 btn-activar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        Activar
-                                    </button>
-                                </form>
+                                    <span class="text-gray-400 text-xs">Solo lectura</span>
+                                @endif
+
+                                @if($isSystemAdmin)
+                                    <span class="text-gray-300">|</span>
+
+                                    @if($usuario->status == 'activo')
+                                    <form action="{{ route('users.destroy', $usuario->user_id) }}" method="POST" class="inline form-suspender">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button" 
+                                                data-is-admin="{{ $usuario->roles->contains('name', 'ADMIN_SISTEMA') ? '1' : '0' }}"
+                                                class="inline-flex items-center gap-1 text-amber-600 hover:text-amber-900 btn-suspender">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                            </svg>
+                                            Suspender
+                                        </button>
+                                    </form>
+                                    @else
+                                    <form action="{{ route('users.destroy', $usuario->user_id) }}" method="POST" class="inline form-activar">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button" 
+                                                class="inline-flex items-center gap-1 text-green-600 hover:text-green-900 btn-activar">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            Activar
+                                        </button>
+                                    </form>
+                                    @endif
                                 @endif
                             </div>
                         </td>
@@ -221,7 +232,20 @@ document.addEventListener('click', function(event) {
     // Detectar clic en botón "Suspender"
     if (event.target.closest('.btn-suspender')) {
         event.preventDefault();
-        const form = event.target.closest('form');
+        const btn = event.target.closest('.btn-suspender');
+        const form = btn.closest('form');
+
+        const isAdmin = btn.getAttribute('data-is-admin') === '1';
+
+        if (isAdmin) {
+            Swal.fire({
+                title: 'Acción no permitida',
+                text: 'No se puede suspender esta cuenta porque es administrador.',
+                icon: 'error',
+                confirmButtonColor: '#3b82f6'
+            });
+            return; // Detiene la ejecución
+        }
         
         Swal.fire({
             title: '¿Suspender usuario?',
