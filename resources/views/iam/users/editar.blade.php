@@ -130,23 +130,42 @@
 
                 {{-- Roles --}}
                 <div class="pt-6 border-t border-gray-100">
-                    <label for="role_id" class="block text-sm font-medium text-gray-700 mb-3">Asignación de Rol <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Asignación de Rol <span class="text-red-500">*</span></label>
                     
-                    @php $currentRoleId = $user->roles->first() ? $user->roles->first()->role_id : ''; @endphp
-
-                    <select id="role_id" name="role_id" 
-                            class="w-full px-4 py-2.5 border {{ $errors->has('role_id') ? 'border-red-500' : 'border-gray-300' }} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white">
-                        <option value="" {{ old('role_id', $currentRoleId) == '' ? 'selected' : '' }}>Sin Rol</option>
-                        @foreach($roles as $role)
-                            <option value="{{ $role->role_id }}" {{ old('role_id', $currentRoleId) == $role->role_id ? 'selected' : '' }}>
-                                {{ $role->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('role_id')
-                        <p class="mt-2 text-sm text-red-600 font-semibold">{{ $message }}</p>
-                    @enderror
-                    <p class="mt-1 text-xs text-gray-500 italic">Nota: Si selecciona "Sin Rol", el usuario no tendrá permisos asignados.</p>
+                    @if($targetIsAdmin)
+                        {{-- CASO 1: Es Admin del Sistema - Mostramos solo información --}}
+                        <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+                            <div class="flex-shrink-0 text-blue-500 mt-0.5">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-blue-900">ADMINISTRADOR DEL SISTEMA</h4>
+                                <p class="text-xs text-blue-700 mt-1">
+                                    Este usuario tiene el rol de Administrador Principal. Por seguridad, este rol no puede ser modificado desde este formulario.
+                                </p>
+                            </div>
+                        </div>
+                        {{-- No enviamos ningún role_id, el controlador sabrá ignorar la actualización de roles --}}
+                    @else
+                        {{-- CASO 2: Usuario Normal - Mostramos el Select --}}
+                        @php $currentRoleId = $user->roles->first() ? $user->roles->first()->role_id : ''; @endphp
+    
+                        <select id="role_id" name="role_id" 
+                                class="w-full px-4 py-2.5 border {{ $errors->has('role_id') ? 'border-red-500' : 'border-gray-300' }} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white">
+                            <option value="" {{ old('role_id', $currentRoleId) == '' ? 'selected' : '' }}>Sin Rol</option>
+                            @foreach($roles as $role)
+                                <option value="{{ $role->role_id }}" {{ old('role_id', $currentRoleId) == $role->role_id ? 'selected' : '' }}>
+                                    {{ $role->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('role_id')
+                            <p class="mt-2 text-sm text-red-600 font-semibold">{{ $message }}</p>
+                        @enderror
+                        <p class="mt-1 text-xs text-gray-500 italic">Nota: Si selecciona "Sin Rol", el usuario no tendrá permisos asignados.</p>
+                    @endif
                 </div>
             </div>
 

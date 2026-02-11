@@ -221,20 +221,26 @@ class UserController extends Controller implements HasMiddleware
             $passwordChanged = true;
         }
         $user->update($dataToUpdate);
+        $isTargetAdmin = $user->roles()->where('name', 'ADMIN_SISTEMA')->exists();
 
         $rolesToSync = $request->filled('role_id') ? [$request->role_id] : [];
         $oldRoles = $user->roles()->pluck('iam.user_role.role_id')->toArray();
 
-        // Verificar si hubo cambios reales en el rol
-        if ($rolesToSync !== $oldRoles) {
-            UserRoleHistory::create([
-                'user_id' => $user->user_id,
-                'role_id' => $request->role_id ?: null, // Si está vacío guarda null
-                'action' => 'assigned',
-                'assigned_by' => auth()->id() ?? null,
-                'created_at' => now()
-            ]);
-            $user->roles()->sync($rolesToSync);
+        if (!$isTargetAdmin) {
+            $rolesToSync = $request->filled('role_id') ? [$request->role_id] : [];
+            $oldRoles = $user->roles()->pluck('iam.user_role.role_id')->toArray();
+
+            // Verificar si hubo cambios reales en el rol
+            if ($rolesToSync !== $oldRoles) {
+                UserRoleHistory::create([
+                    'user_id' => $user->user_id,
+                    'role_id' => $request->role_id ?: null,
+                    'action' => 'assigned',
+                    'assigned_by' => auth()->id() ?? null,
+                    'created_at' => now()
+                ]);
+                $user->roles()->sync($rolesToSync);
+            }
         }
 
         if ($passwordChanged) {
