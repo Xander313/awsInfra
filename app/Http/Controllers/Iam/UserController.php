@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
@@ -29,7 +31,7 @@ class UserController extends Controller implements HasMiddleware
                 }
                 
                 return $next($request);
-            }, only: ['create', 'store', 'edit', 'update', 'destroy']),
+            }, only: ['create', 'store', 'edit', 'update', 'destroy', 'verifyCedula']),
         ];
     }
 
@@ -70,6 +72,19 @@ class UserController extends Controller implements HasMiddleware
                     }
                 }
             ],
+            'cedula' => [
+                'required',
+                'digits:10',
+                function ($attribute, $value, $fail) {
+                    if (!AppUser::query()->where('cedula', $value)->doesntExist()) {
+                        $fail('La cédula ya está registrada en el sistema');
+                    }
+
+                    if (!$this->isValidEcuadorCedula($value)) {
+                        $fail('La cédula ecuatoriana no es válida');
+                    }
+                }
+            ],
             'full_name' => 'required|max:255',
             'password' => 'required|min:8|confirmed',
             'status' => 'required|in:activo,suspendido',
@@ -93,6 +108,8 @@ class UserController extends Controller implements HasMiddleware
         ], [
             'email.required' => 'Por favor ingrese el email del usuario',
             'email.email' => 'Ingrese un email válido',
+            'cedula.required' => 'Por favor ingrese la cédula',
+            'cedula.digits' => 'La cédula debe contener exactamente 10 dígitos',
             'full_name.required' => 'Por favor ingrese el nombre completo',
             'password.required' => 'La contraseña es obligatoria para nuevos usuarios',
             'password.min' => 'La contraseña debe tener al menos 8 caracteres',
@@ -107,6 +124,7 @@ class UserController extends Controller implements HasMiddleware
 
         $user = AppUser::create([
             'email' => $request->email,
+            'cedula' => $request->cedula,
             'full_name' => $request->full_name,
             'password' => $request->password,
             'status' => $request->status,
@@ -173,6 +191,24 @@ class UserController extends Controller implements HasMiddleware
                     if ($exists) { $fail('El email ya está registrado en el sistema'); }
                 }
             ],
+            'cedula' => [
+                'required',
+                'digits:10',
+                function ($attribute, $value, $fail) use ($id) {
+                    $exists = AppUser::query()
+                        ->where('cedula', $value)
+                        ->where('user_id', '!=', $id)
+                        ->exists();
+
+                    if ($exists) {
+                        $fail('La cédula ya está registrada en el sistema');
+                    }
+
+                    if (!$this->isValidEcuadorCedula($value)) {
+                        $fail('La cédula ecuatoriana no es válida');
+                    }
+                }
+            ],
             'full_name' => 'required|max:255',
             'password' => 'nullable|min:8|confirmed',
             'status' => 'required|in:activo,suspendido',
@@ -197,6 +233,8 @@ class UserController extends Controller implements HasMiddleware
         ], [
             'email.required' => 'Por favor ingrese el email del usuario',
             'email.email' => 'Ingrese un email válido',
+            'cedula.required' => 'Por favor ingrese la cédula',
+            'cedula.digits' => 'La cédula debe contener exactamente 10 dígitos',
             'full_name.required' => 'Por favor ingrese el nombre completo',
             'full_name.max' => 'Limite de caracteres excedido (255)',
             'password.confirmed' => 'Las contraseñas no coinciden',
@@ -207,7 +245,7 @@ class UserController extends Controller implements HasMiddleware
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        $dataToUpdate = $request->only(['email', 'full_name', 'status', 'unit_id', 'provincia', 'canton']);
+        $dataToUpdate = $request->only(['email', 'cedula', 'full_name', 'status', 'unit_id', 'provincia', 'canton']);
         // Si intentan poner 'suspendido' a un ADMIN_SISTEMA, lo impedimos
         if (isset($dataToUpdate['status']) && $dataToUpdate['status'] == 'suspendido') {
             if ($user->roles()->where('name', 'ADMIN_SISTEMA')->exists()) {
@@ -288,6 +326,110 @@ class UserController extends Controller implements HasMiddleware
         return redirect()->route('users.index')->with('message', $message);
     }
 
+    public function verifyCedula(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'cedula' => 'required|digits:10',
+        ], [
+            'cedula.required' => 'Debe enviar una cédula.',
+            'cedula.digits' => 'La cédula debe contener exactamente 10 dígitos.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'ok' => false,
+                'message' => $validator->errors()->first('cedula'),
+            ], 422);
+        }
+
+        $cedula = $request->input('cedula');
+        if (!$this->isValidEcuadorCedula($cedula)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'La cédula ecuatoriana no es válida.',
+            ], 422);
+        }
+
+        $cacheKey = "webservicesec:cedula:{$cedula}";
+        if (Cache::has($cacheKey)) {
+            return response()->json([
+                'ok' => true,
+                'cached' => true,
+                'data' => Cache::get($cacheKey),
+            ]);
+        }
+
+        $token = config('services.webservicesec.token');
+        $baseUrl = rtrim(config('services.webservicesec.base_url', 'https://webservices.ec/api'), '/');
+
+        if (empty($token)) {
+            Log::warning('WEBSERVICESEC_TOKEN no configurado para verificación de cédula');
+            return response()->json([
+                'ok' => false,
+                'message' => 'No se pudo verificar la cédula en este momento.',
+            ], 500);
+        }
+
+        try {
+            $response = Http::acceptJson()
+                ->withToken($token)
+                ->timeout(15)
+                ->get("{$baseUrl}/cedula/{$cedula}");
+        } catch (\Throwable $e) {
+            Log::error('Error al consultar cédula en webservices.ec', [
+                'cedula' => $cedula,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'No se pudo consultar el servicio de cédula.',
+            ], 502);
+        }
+
+        if (!$response->successful()) {
+            Log::warning('Respuesta no exitosa al consultar cédula', [
+                'cedula' => $cedula,
+                'status' => $response->status(),
+                'api_message' => data_get($response->json(), 'message'),
+            ]);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'No fue posible obtener datos para esa cédula.',
+            ], 422);
+        }
+
+        $apiData = data_get($response->json(), 'data.response', []);
+        $nombreCompleto = trim((string) data_get($apiData, 'nombreCompleto', ''));
+        $nombres = trim((string) data_get($apiData, 'nombres', ''));
+        $apellidos = trim((string) data_get($apiData, 'apellidos', ''));
+        $fullNameOrdered = trim("{$nombres} {$apellidos}");
+
+        if ($nombreCompleto === '' && $nombres === '' && $apellidos === '') {
+            return response()->json([
+                'ok' => false,
+                'message' => 'La cédula no devolvió nombres válidos.',
+            ], 422);
+        }
+
+        $result = [
+            'cedula' => (string) data_get($apiData, 'identificacion', $cedula),
+            'full_name' => $fullNameOrdered !== '' ? $fullNameOrdered : $nombreCompleto,
+            'nombres' => $nombres,
+            'apellidos' => $apellidos,
+            'estado' => (string) data_get($apiData, 'estado', ''),
+        ];
+
+        Cache::put($cacheKey, $result, now()->addHours(24));
+
+        return response()->json([
+            'ok' => true,
+            'cached' => false,
+            'data' => $result,
+        ]);
+    }
+
     public function rolesHistory(Request $request, string $id)
     {
         $user = AppUser::findOrFail($id);
@@ -297,5 +439,30 @@ class UserController extends Controller implements HasMiddleware
             ->paginate($perPage)->withQueryString();
 
         return view('iam.users.historial_roles', compact('user', 'history'));
+    }
+
+    private function isValidEcuadorCedula(?string $cedula): bool
+    {
+        if (!is_string($cedula) || !preg_match('/^\d{10}$/', $cedula)) {
+            return false;
+        }
+
+        $provinceCode = (int) substr($cedula, 0, 2);
+        $thirdDigit = (int) $cedula[2];
+
+        if ($provinceCode < 1 || $provinceCode > 24 || $thirdDigit >= 6) {
+            return false;
+        }
+
+        $sum = 0;
+        $coefficients = [2, 1, 2, 1, 2, 1, 2, 1, 2];
+
+        for ($i = 0; $i < 9; $i++) {
+            $value = ((int) $cedula[$i]) * $coefficients[$i];
+            $sum += $value > 9 ? $value - 9 : $value;
+        }
+
+        $checkDigit = (10 - ($sum % 10)) % 10;
+        return $checkDigit === (int) $cedula[9];
     }
 }

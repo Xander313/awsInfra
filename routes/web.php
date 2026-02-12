@@ -272,6 +272,9 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Rutas Fase 2
+    Route::post('usuarios/verificar-cedula', [UserController::class, 'verifyCedula'])
+        ->name('users.verify_cedula');
+
     Route::resource('usuarios', UserController::class)
     ->except(['show'])
     ->names([

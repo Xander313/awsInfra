@@ -14,6 +14,7 @@ class AppUser extends Authenticatable
     protected $fillable = [
         'unit_id',
         'email',
+        'cedula',
         'full_name',
         'status',
         'provincia',

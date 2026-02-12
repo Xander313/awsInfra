@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'webservicesec' => [
+        'token' => env('WEBSERVICESEC_TOKEN'),
+        'base_url' => env('WEBSERVICESEC_BASE_URL', 'https://webservices.ec/api'),
+    ],
+
 ];

@@ -38,6 +38,23 @@
                     @error('email') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
+                {{-- Cédula --}}
+                <div>
+                    <label for="cedula" class="block text-sm font-medium text-gray-700 mb-2">Cédula <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <input type="text" id="cedula" name="cedula" value="{{ old('cedula', $user->cedula) }}"
+                               class="w-full px-4 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                               placeholder="XXXXXXXXXX" maxlength="10" inputmode="numeric" autocomplete="off">
+                        <span id="cedula-check" class="cedula-check-icon absolute inset-y-0 right-3 flex items-center text-green-600 opacity-0 pointer-events-none">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <p id="cedula-feedback" class="mt-2 text-sm hidden"></p>
+                    @error('cedula') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+
                 {{-- Sección de Seguridad (Opcional) --}}
                 <div class="pt-6 border-t border-gray-100">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Seguridad (Opcional)</h3>
@@ -91,7 +108,9 @@
                 <div>
                     <label for="full_name" class="block text-sm font-medium text-gray-700 mb-2">Nombre Completo <span class="text-red-500">*</span></label>
                     <input type="text" id="full_name" name="full_name" value="{{ old('full_name', $user->full_name) }}"
-                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                           placeholder="Se llenará automáticamente" readonly>
+                    <p class="mt-1 text-xs text-gray-500 italic">Este campo se llenará automáticamente una vez verificado el número de cédula.</p>
                     @error('full_name') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
 
@@ -185,10 +204,219 @@
 <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.js"></script>
 
+<style>
+    .cedula-check-icon.is-visible {
+        opacity: 1;
+    }
+
+    .cedula-check-icon.is-animating {
+        animation: cedula-check-pop 0.28s ease-out;
+    }
+
+    @keyframes cedula-check-pop {
+        0% { transform: scale(0.65); opacity: 0; }
+        60% { transform: scale(1.2); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .cedula-feedback-check {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transform-origin: center;
+    }
+
+    .cedula-feedback-check.is-animating {
+        animation: cedula-check-pop 0.28s ease-out;
+    }
+</style>
+
 <script>
     const ubicaciones = @json(config('ecuador.ubicaciones'));
     const oldCanton = "{{ old('canton') }}";
     const dbCanton = "{{ $user->canton }}";
+    const verifyCedulaUrl = "{{ route('users.verify_cedula') }}";
+    const csrfToken = "{{ csrf_token() }}";
+    let isVerifyingCedula = false;
+
+    function escapeHtml(text) {
+        return String(text || '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
+    }
+
+    function isValidEcuadorCedula(cedula) {
+        if (!/^\d{10}$/.test(cedula)) return false;
+
+        const provinceCode = parseInt(cedula.substring(0, 2), 10);
+        const thirdDigit = parseInt(cedula.charAt(2), 10);
+
+        if (provinceCode < 1 || provinceCode > 24 || thirdDigit >= 6) return false;
+
+        const coefficients = [2, 1, 2, 1, 2, 1, 2, 1, 2];
+        let sum = 0;
+
+        for (let i = 0; i < 9; i++) {
+            let value = parseInt(cedula.charAt(i), 10) * coefficients[i];
+            if (value > 9) value -= 9;
+            sum += value;
+        }
+
+        const checkDigit = (10 - (sum % 10)) % 10;
+        return checkDigit === parseInt(cedula.charAt(9), 10);
+    }
+
+    function showCedulaFeedback(message, type = 'info') {
+        const feedback = document.getElementById('cedula-feedback');
+
+        if (!message) {
+            feedback.textContent = '';
+            feedback.classList.add('hidden');
+            feedback.classList.remove('text-red-600', 'text-green-600', 'text-gray-600');
+            return;
+        }
+
+        feedback.classList.remove('hidden', 'text-red-600', 'text-green-600', 'text-gray-600');
+
+        if (type === 'error') {
+            feedback.textContent = message;
+            feedback.classList.add('text-red-600');
+        } else if (type === 'success') {
+            feedback.innerHTML = `
+                <span class="cedula-feedback-check is-animating" aria-hidden="true">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </span>
+                <span>${escapeHtml(message)}</span>
+            `;
+            feedback.classList.add('text-green-600');
+        } else {
+            feedback.textContent = message;
+            feedback.classList.add('text-gray-600');
+        }
+    }
+
+    function setCedulaCheckState(isVerified) {
+        const check = document.getElementById('cedula-check');
+        if (!check) return;
+
+        check.classList.remove('is-visible', 'is-animating');
+
+        if (isVerified) {
+            check.classList.add('is-visible');
+            void check.offsetWidth;
+            check.classList.add('is-animating');
+        }
+    }
+
+    function getCachedCedulaData(cedula) {
+        try {
+            const cacheKey = `cedula_lookup_${cedula}`;
+            const raw = sessionStorage.getItem(cacheKey);
+            if (!raw) return null;
+
+            const parsed = JSON.parse(raw);
+            if (!parsed.expires_at || Date.now() > parsed.expires_at) {
+                sessionStorage.removeItem(cacheKey);
+                return null;
+            }
+
+            return parsed.data || null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function setCachedCedulaData(cedula, data) {
+        try {
+            const cacheKey = `cedula_lookup_${cedula}`;
+            sessionStorage.setItem(cacheKey, JSON.stringify({
+                data: data,
+                expires_at: Date.now() + (24 * 60 * 60 * 1000)
+            }));
+        } catch (error) {
+            // no-op
+        }
+    }
+
+    async function verifyCedula() {
+        const cedulaInput = document.getElementById('cedula');
+        const fullNameInput = document.getElementById('full_name');
+        const cedula = (cedulaInput.value || '').trim();
+
+        if (!/^\d{10}$/.test(cedula)) {
+            setCedulaCheckState(false);
+            showCedulaFeedback('Ingrese una cédula numérica de 10 dígitos.', 'error');
+            fullNameInput.value = '';
+            return;
+        }
+
+        if (!isValidEcuadorCedula(cedula)) {
+            setCedulaCheckState(false);
+            showCedulaFeedback('La cédula ecuatoriana no es válida.', 'error');
+            fullNameInput.value = '';
+            return;
+        }
+
+        const localCache = getCachedCedulaData(cedula);
+        if (localCache && localCache.full_name) {
+            fullNameInput.value = localCache.full_name;
+            setCedulaCheckState(true);
+            showCedulaFeedback('Cédula verificada.', 'success');
+            return;
+        }
+
+        if (isVerifyingCedula) {
+            return;
+        }
+
+        isVerifyingCedula = true;
+        setCedulaCheckState(false);
+        showCedulaFeedback('Consultando cédula...', 'info');
+
+        try {
+            const response = await fetch(verifyCedulaUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ cedula: cedula })
+            });
+
+            let result = {};
+            try {
+                result = await response.json();
+            } catch (e) {
+                result = {};
+            }
+
+            if (!response.ok || !result.ok) {
+                throw new Error(result.message || 'No se pudo verificar la cédula.');
+            }
+
+            if (result.data && result.data.full_name) {
+                fullNameInput.value = result.data.full_name;
+                setCachedCedulaData(cedula, result.data);
+                setCedulaCheckState(true);
+                showCedulaFeedback('Cédula verificada.', 'success');
+                return;
+            }
+
+            throw new Error('La respuesta no contiene nombres válidos.');
+        } catch (error) {
+            setCedulaCheckState(false);
+            showCedulaFeedback(error.message || 'Ocurrió un error al verificar la cédula.', 'error');
+        } finally {
+            isVerifyingCedula = false;
+        }
+    }
 
     $(document).ready(function() {
         const $provinciaSelect = $('#provincia');
@@ -225,9 +453,26 @@
         $provinciaSelect.on('change', function() { cargarCantones($(this).val()); });
         if ($provinciaSelect.val()) cargarCantones($provinciaSelect.val());
 
+        $('#cedula').on('input', function() {
+            this.value = (this.value || '').replace(/\D/g, '').slice(0, 10);
+            setCedulaCheckState(false);
+            showCedulaFeedback('', 'info');
+        });
+
+        $('#cedula').on('blur', function() {
+            if ((this.value || '').trim() !== '') {
+                verifyCedula();
+            }
+        });
+
+        $.validator.addMethod("cedulaEc", function(value, element) {
+            return this.optional(element) || isValidEcuadorCedula(value);
+        }, "La cédula ecuatoriana no es válida");
+
         $("form").validate({
             rules: {
                 email: { required: true, email: true },
+                cedula: { required: true, digits: true, minlength: 10, maxlength: 10, cedulaEc: true },
                 full_name: { required: true, minlength: 3 },
                 unit_id: { required: true, number: true }
                 // role_id ya no es estrictamente requerido por jQuery si permitimos "Sin Rol" (vacío)
