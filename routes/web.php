@@ -309,7 +309,7 @@ Route::middleware(['auth'])->group(function () {
     | Sistemas
     |--------------------------------------------------------------------------
     */
-    Route::prefix('systems')->name('systems.')->group(function () {
+    Route::prefix('sistemas')->name('systems.')->group(function () {
         Route::get('/', [SystemController::class, 'index'])->name('index');
         Route::get('/crear', [SystemController::class, 'create'])->name('create');
         Route::post('/guardar', [SystemController::class, 'store'])->name('store');
@@ -327,7 +327,7 @@ Route::middleware(['auth'])->group(function () {
     | Data Stores (CRUD general)
     |--------------------------------------------------------------------------
     */
-    Route::prefix('data-stores')->name('data-stores.')->group(function () {
+    Route::prefix('almacenes-datos')->name('data-stores.')->group(function () {
         Route::get('/', [DataStoreController::class, 'index'])->name('index');
         Route::get('/crear', [DataStoreController::class, 'create'])->name('create');
         Route::post('/guardar', [DataStoreController::class, 'store'])->name('store');
@@ -341,7 +341,7 @@ Route::middleware(['auth'])->group(function () {
     | Recipients
     |--------------------------------------------------------------------------
     */
-    Route::prefix('recipients')->name('recipients.')->group(function () {
+    Route::prefix('destinatarios')->name('recipients.')->group(function () {
         Route::get('/', [RecipientController::class, 'index'])->name('index');
         Route::get('/crear', [RecipientController::class, 'create'])->name('create');
         Route::post('/guardar', [RecipientController::class, 'store'])->name('store');

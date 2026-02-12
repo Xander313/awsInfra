@@ -90,7 +90,7 @@
             'label' => 'PRIVACIDAD',
             'items' => [
                 ['label' => 'Catálogos (Base)', 'href' => route('privacy.data_category.index'), 'key' => 'privacy_catalogs'],
-                ['label' => 'Sistemas / Data Stores', 'href' => route('systems.index'), 'key' => 'systems'],
+                ['label' => 'Sistemas / Almacenes de Datos', 'href' => route('systems.index'), 'key' => 'systems'],
                 ['label' => 'Destinatarios', 'href' => route('recipients.index'), 'key' => 'recipients'],
                 ['label' => 'RAT: Actividades de Tratamiento', 'href' => route('rat.index'), 'key' => 'rat'],
                 ['label' => 'Titulares / Consentimientos', 'href' => route('data-subjects.index'), 'key' => 'subjects'],
