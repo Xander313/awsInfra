@@ -30,4 +30,4 @@ RUN php artisan optimize:clear \
  && php artisan view:cache
 
 # Arranque
-CMD ["sh", "-c", "php artisan config:clear && php -S 0.0.0.0:8080 -t public"]
+CMD ["php", "-S", "0.0.0.0:8080", "-t", "public"]

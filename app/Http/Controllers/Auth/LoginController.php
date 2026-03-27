@@ -43,35 +43,7 @@ class LoginController extends Controller
                 }
             }
 
-            $userId = Auth::id();
-            $current = $request->session()->getId();
-            $key = "single_session_user_{$userId}";
-            $active = Cache::get($key);
 
-            if ($active && config('session.driver') === 'file') {
-                $path = storage_path('framework/sessions/'.$active);
-                if (!file_exists($path)) {
-                    Cache::forget($key);
-                    $active = null;
-                }
-            }
-
-            if ($active && $active !== $current) {
-                // validar si sesión realmente existe
-                if (config('session.driver') === 'file') {
-                    $path = storage_path('framework/sessions/'.$active);
-                    if (!file_exists($path)) {
-                        Cache::forget($key);
-                        $active = null;
-                    }
-                } else {
-                    // para database o cookie → limpiar directamente
-                    Cache::forget($key);
-                    $active = null;
-                }
-            }
-
-            Cache::put($key, $current, now()->addMinutes(30));
 
             return redirect()->intended(route('dashboard'));
         }
@@ -87,12 +59,7 @@ public function logout(Request $request)
     $uid = Auth::id();
     $current = $request->session()->getId();
 
-    $key = "single_session_user_{$uid}";
-    $active = Cache::get($key);
-    if ($active && $active === $current) {
-        Cache::forget($key);
-        Cache::forget('single_tab_session_'.$current);
-    }
+
 
     Auth::logout();
 

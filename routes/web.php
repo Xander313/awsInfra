@@ -129,7 +129,7 @@ Route::middleware(['auth'])->group(function () {
         return redirect($redirect);
     })->name('session.takeover');
 
-    Route::middleware([SingleSession::class, SingleTab::class])->group(function () {
+    Route::middleware([SingleTab::class])->group(function () {
         Route::get('/tab/claim', function () {
             return response()->json(['ok' => true]);
         })->name('tab.claim');
