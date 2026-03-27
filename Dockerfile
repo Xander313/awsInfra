@@ -1,0 +1,23 @@
+FROM dunglas/frankenphp:1-php8.2
+
+# Instalar extensiones necesarias
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    && docker-php-ext-install pdo pdo_pgsql pgsql
+
+# Copiar proyecto
+WORKDIR /app
+COPY . .
+
+# Instalar dependencias PHP
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+
+# Permisos Laravel
+RUN mkdir -p storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
+# Exponer puerto
+EXPOSE 8080
+
+# Comando de arranque
+CMD ["php", "-S", "0.0.0.0:8080", "-t", "public"]
