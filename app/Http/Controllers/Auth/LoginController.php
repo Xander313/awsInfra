@@ -56,20 +56,10 @@ class LoginController extends Controller
                 }
             }
 
-            if ($active && $active !== $current) {
-                // validar si sesión realmente existe
-                if (config('session.driver') === 'file') {
-                    $path = storage_path('framework/sessions/'.$active);
-                    if (!file_exists($path)) {
-                        Cache::forget($key);
-                        $active = null;
-                    }
-                } else {
-                    // para database o cookie → limpiar directamente
-                    Cache::forget($key);
-                    $active = null;
-                }
-            }
+            //if ($active && $active !== $current) {
+            //    $request->session()->put('session_conflict_active', $active);
+            //    return redirect()->route('session.conflict');
+            //}
 
             Cache::put($key, $current, now()->addMinutes(30));
 
