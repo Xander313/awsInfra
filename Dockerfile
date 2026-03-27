@@ -1,12 +1,17 @@
 FROM dunglas/frankenphp:1-php8.2
 
-# Instalar extensiones necesarias
+# Instalar dependencias del sistema + postgres
 RUN apt-get update && apt-get install -y \
-    libpq-dev \
+    git unzip zip curl libpq-dev \
     && docker-php-ext-install pdo pdo_pgsql pgsql
 
-# Copiar proyecto
+# Instalar Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Directorio de trabajo
 WORKDIR /app
+
+# Copiar proyecto
 COPY . .
 
 # Instalar dependencias PHP
@@ -19,5 +24,5 @@ RUN mkdir -p storage bootstrap/cache \
 # Exponer puerto
 EXPOSE 8080
 
-# Comando de arranque
+# Arranque
 CMD ["php", "-S", "0.0.0.0:8080", "-t", "public"]
