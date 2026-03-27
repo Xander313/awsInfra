@@ -24,10 +24,12 @@ RUN mkdir -p storage bootstrap/cache \
 # Exponer puerto
 EXPOSE 8080
 
-RUN php artisan optimize:clear \
- && php artisan config:cache \
- && php artisan route:cache \
- && php artisan view:cache
 
 # Arranque
-CMD ["php", "-S", "0.0.0.0:8080", "-t", "public"]
+CMD ["sh", "-c", "\
+php artisan optimize:clear && \
+php artisan config:cache && \
+php artisan route:cache && \
+php artisan view:cache && \
+php -S 0.0.0.0:8080 -t public \
+"]
