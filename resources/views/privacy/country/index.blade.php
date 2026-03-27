@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('active_key', 'privacy_catalogs')
+@section('active_key', 'country')
 
 @section('title', 'Países')
 

@@ -1,5 +1,8 @@
 @extends('layouts.app')
 
+@section('title', 'Sistemas')
+@section('active_key', 'systems')
+
 @section('content')
 <div class="d-flex justify-content-center align-items-center" style="min-height: 90vh;">
     <div class="card shadow-lg w-100" style="max-width: 700px;">

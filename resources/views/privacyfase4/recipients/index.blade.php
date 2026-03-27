@@ -1,5 +1,9 @@
 @extends('layouts.app')
 
+@section('title', 'Destinatarios')
+@section('active_key', 'recipients')
+
+
 @section('content')
 <div class="container">
     <h1 class="mb-4">Destinatarios</h1>

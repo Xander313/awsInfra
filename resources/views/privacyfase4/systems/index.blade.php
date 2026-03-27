@@ -1,5 +1,9 @@
 @extends('layouts.app')
 
+@section('title', 'Sistemas')
+@section('active_key', 'systems')
+
+
 @section('content')
 <div class="container">
     <h2 class="mb-4">Sistemas</h2>

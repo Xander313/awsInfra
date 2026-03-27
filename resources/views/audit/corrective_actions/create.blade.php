@@ -1,6 +1,7 @@
 
 @extends('layouts.app')
-
+@section('title', 'Acciones Correctivas')
+@section('active_key', 'corrective_actions')
 @section('content')
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>

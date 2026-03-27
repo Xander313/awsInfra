@@ -1,5 +1,8 @@
 @extends('layouts.app')
 
+@section('title', 'Titulares')
+@section('active_key', 'subjects')
+
 @section('content')
 <div class="container mt-5">
 

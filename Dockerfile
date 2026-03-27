@@ -27,9 +27,6 @@ EXPOSE 8080
 
 # Arranque
 CMD ["sh", "-c", "\
-php artisan optimize:clear && \
-php artisan config:cache && \
-php artisan route:cache && \
-php artisan view:cache && \
+php artisan optimize && \
 php -S 0.0.0.0:8080 -t public \
 "]
