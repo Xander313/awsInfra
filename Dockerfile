@@ -24,5 +24,8 @@ RUN mkdir -p storage bootstrap/cache \
 # Exponer puerto
 EXPOSE 8080
 
+# Limpiar cache (SIEMPRE)
+RUN php artisan optimize:clear
+
 # Arranque
-CMD ["php", "-S", "0.0.0.0:8080", "-t", "public"]
+CMD ["sh", "-c", "php artisan config:clear && php -S 0.0.0.0:8080 -t public"]
