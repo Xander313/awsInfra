@@ -108,14 +108,15 @@ class OrgController extends Controller
 
         if ($profile) {
             $profile->update($data);
+            $profile->refresh();
             $message = 'Perfil regulatorio/económico actualizado correctamente.';
         } else {
-            $org->regulatoryProfile()->create($data);
+            $profile = $org->regulatoryProfile()->create($data);
             $message = 'Perfil regulatorio/económico configurado correctamente.';
         }
 
         return redirect()
-            ->route('orgs.show', $org)
+            ->route('orgs.regulatory-profile.edit', $org)
             ->with('success', $message);
     }
 

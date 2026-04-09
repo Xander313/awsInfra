@@ -84,7 +84,13 @@ class OrgRegulatoryProfileRequest extends FormRequest
         }
 
         if (is_string($value)) {
-            $value = str_replace(',', '', trim($value));
+            $value = trim($value);
+
+            if (str_contains($value, ',') && str_contains($value, '.')) {
+                $value = str_replace(',', '', $value);
+            } elseif (str_contains($value, ',')) {
+                $value = str_replace(',', '.', $value);
+            }
         }
 
         return $value;

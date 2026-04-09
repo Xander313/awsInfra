@@ -7,6 +7,8 @@
     $profileExists = $profile !== null;
     $entityType = old('entity_type', $profile?->entity_type);
     $currentYear = (int) date('Y');
+    $businessVolumeValue = old('business_volume_usd', $profile?->business_volume_usd !== null ? number_format((float) $profile->business_volume_usd, 2, '.', '') : null);
+    $sbuReferenceValue = old('sbu_reference', $profile?->sbu_reference !== null ? number_format((float) $profile->sbu_reference, 2, '.', '') : null);
 @endphp
 
 @section('content')
@@ -87,7 +89,7 @@
                                 min="0"
                                 max="10000000000"
                                 name="business_volume_usd"
-                                value="{{ old('business_volume_usd', $profile?->business_volume_usd) }}"
+                                value="{{ $businessVolumeValue }}"
                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 text-sm @error('business_volume_usd') border-red-500 @enderror"
                                 placeholder="Ej. 1500000.00"
                             >
@@ -104,7 +106,7 @@
                                 step="0.01"
                                 min="0"
                                 name="sbu_reference"
-                                value="{{ old('sbu_reference', $profile?->sbu_reference) }}"
+                                value="{{ $sbuReferenceValue }}"
                                 class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 text-sm @error('sbu_reference') border-red-500 @enderror"
                                 placeholder="Ej. 460.00"
                             >

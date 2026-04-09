@@ -4,7 +4,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -17,7 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (TokenMismatchException $exception, Request $request) {
+        $exceptions->respond(function ($response, Throwable $exception, Request $request) {
+            if ($response->getStatusCode() !== 419) {
+                return $response;
+            }
+
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => 'La sesión expiró. Inicia sesión nuevamente.',
@@ -29,11 +32,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 Auth::logout();
             }
 
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+            if ($request->hasSession()) {
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
 
             return redirect()
-                ->route('login')
+                ->guest(route('login'))
                 ->with('warning', 'Tu sesión expiró. Inicia sesión nuevamente.');
         });
     })->create();
