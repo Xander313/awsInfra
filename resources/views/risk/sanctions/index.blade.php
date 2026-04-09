@@ -198,6 +198,8 @@
             saving: false,
             coefficients: @json($coefficients->values()),
             modalInstance: null,
+            coefficientsIndexUrl: @json(route('risk.sanctions.coefficients.index', [], false)),
+            coefficientsUpdateUrl: @json(route('risk.sanctions.coefficients.update', [], false)),
             stats: {
                 total: {{ $totalCoefficients }},
                 active: {{ $activeCoefficients }},
@@ -253,7 +255,7 @@
                 this.loading = true;
 
                 try {
-                    const payload = await this.api(`{{ route('risk.sanctions.coefficients.index') }}`);
+                    const payload = await this.api(this.coefficientsIndexUrl);
                     this.coefficients = payload.data || [];
                     this.refreshStats();
                     this.renderPreview();
@@ -396,7 +398,7 @@
                 this.saving = true;
 
                 try {
-                    const payload = await this.api(`{{ route('risk.sanctions.coefficients.update') }}`, {
+                    const payload = await this.api(this.coefficientsUpdateUrl, {
                         method: 'PUT',
                         body: JSON.stringify({ coefficients }),
                     });
