@@ -2,6 +2,7 @@
 
 namespace App\Models\Privacy;
 
+use App\Models\Risk\Incident;
 use Illuminate\Database\Eloquent\Model;
 
 class ProcessingActivity extends Model
@@ -40,6 +41,11 @@ class ProcessingActivity extends Model
             'pa_id',                // FK de esta tabla en pivote
             'data_cat_id'           // FK del modelo relacionado en pivote
         )->withPivot('collection_source'); // si quieres usar collection_source
+    }
+
+    public function incidents()
+    {
+        return $this->hasMany(Incident::class, 'pa_id', 'pa_id');
     }
 
     // Relación RetentionRule

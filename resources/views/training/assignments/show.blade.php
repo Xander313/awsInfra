@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('active_key', 'training_assignments')
+
 @section('content')
 <div class="container d-flex justify-content-center mt-5">
     <div class="col-md-7 col-lg-6">
@@ -26,12 +28,20 @@
 
                 <div class="mb-3">
                     <small class="text-muted text-uppercase">Estado</small>
-                    <p class="fs-6">{{ ucfirst($assignment->status) }}</p>
+                    <p class="fs-6">
+                        {{
+                            [
+                                'PENDING' => 'Pendiente',
+                                'COMPLETED' => 'Completado',
+                                'EXPIRED' => 'Vencido',
+                            ][strtoupper((string) $assignment->status)] ?? ($assignment->status ?? '—')
+                        }}
+                    </p>
                 </div>
 
                 <div class="mb-4">
                     <small class="text-muted text-uppercase">Vence</small>
-                    <p class="fs-6">{{ $assignment->due_at ?? '—' }}</p>
+                    <p class="fs-6">{{ $assignment->due_at?->format('d/m/Y') ?? '—' }}</p>
                 </div>
 
                 <hr>

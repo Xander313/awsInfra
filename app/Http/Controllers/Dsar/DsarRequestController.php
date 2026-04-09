@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dsar;
 
 use App\Http\Controllers\Controller;
+use App\Support\DashboardCache;
 use Illuminate\Http\Request;
 
 use App\Models\Privacy\DsarRequest;
@@ -44,7 +45,7 @@ class DsarRequestController extends Controller
         );
     }
 
-    // 💾 Guardar
+    //Guardar
     public function store(Request $request)
     {
         $request->validate([
@@ -56,8 +57,10 @@ class DsarRequestController extends Controller
             'assigned_to_user_id' => 'nullable|exists:' . AppUser::class . ',user_id',
         ]);
 
+        $orgId = (int) (session('org_id') ?? 1);
+
         DsarRequest::create([
-            'org_id' => 1,
+            'org_id' => $orgId,
             'subject_id' => $request->subject_id,
             'request_type' => $request->request_type,
             'channel' => $request->channel,
@@ -66,6 +69,8 @@ class DsarRequestController extends Controller
             'status' => 'PENDING',
             'assigned_to_user_id' => $request->assigned_to_user_id,
         ]);
+
+        DashboardCache::forgetForOrg($orgId);
 
         return redirect()
             ->route('dsar.index')
@@ -116,9 +121,10 @@ class DsarRequestController extends Controller
             'closed_at' => $request->status === 'CLOSED' ? now() : null,
         ]);
 
+        DashboardCache::forgetForOrg((int) $dsar->org_id);
+
         return redirect()
             ->route('dsar.index')
             ->with('exito', 'Solicitud DSAR actualizada');
     }
 }
-

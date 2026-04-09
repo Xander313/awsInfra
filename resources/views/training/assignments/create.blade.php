@@ -77,7 +77,7 @@
                         <input
                             type="date"
                             name="assigned_at"
-                            value="{{ now()->toDateString() }}"
+                            value="{{ old('assigned_at', now()->toDateString()) }}"
                             class="w-full rounded-lg border-gray-300
                                    focus:border-blue-500 focus:ring
                                    focus:ring-blue-200 text-sm"
@@ -92,6 +92,7 @@
                         <input
                             type="date"
                             name="due_at"
+                            value="{{ old('due_at') }}"
                             class="w-full rounded-lg border-gray-300
                                    focus:border-blue-500 focus:ring
                                    focus:ring-blue-200 text-sm"

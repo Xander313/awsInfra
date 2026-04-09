@@ -5,6 +5,7 @@
 namespace App\Http\Controllers\Privacy;
 
 use App\Http\Controllers\Controller;
+use App\Support\DashboardCache;
 use Illuminate\Http\Request;
 use App\Models\Privacy\ProcessingActivity;
 use App\Models\Privacy\DataCategory;
@@ -45,12 +46,14 @@ class ProcessingActivityController extends Controller
      */
     public function store(Request $request)
     {
+        $orgId = (int) (session('org_id') ?? 1);
+
         DB::transaction(function () use ($request) {
 
 
             $activity = ProcessingActivity::create([
                 /*'org_id' => 1, aqui se espera el id de la session de org se coloca un 1 para poder insertar TEMPORALMENTE*/
-                'org_id' => 1,
+                'org_id' => (int) (session('org_id') ?? 1),
                 /*'owner_unit_id' => auth()->user()->unit_id,----aqui se espera el id de la session del user actual se coloca un 1 para poder insertar TEMPORALMENTE*/
                 'owner_unit_id' => 1,
                 'name' => $request->name
@@ -102,6 +105,8 @@ class ProcessingActivityController extends Controller
                 }
             }
         });
+
+        DashboardCache::forgetForOrg($orgId);
 
         return redirect()->route('rat.index')->with('exito', 'Actividad creada correctamente');
     }
@@ -160,6 +165,7 @@ class ProcessingActivityController extends Controller
     public function update(Request $request, $id)
     {
         $activity = ProcessingActivity::findOrFail($id);
+        $previousOrgId = (int) $activity->org_id;
 
         DB::transaction(function () use ($request, $activity) {
 
@@ -170,7 +176,7 @@ class ProcessingActivityController extends Controller
                 'name' => $request->name,
                 'description' => $request->description,
                 'legal_basis' => $request->legal_basis,
-                'org_id' => 1,          // Ajusta si aplica
+                'org_id' => (int) (session('org_id') ?? $activity->org_id),
                 'owner_unit_id' => 1,   // Ajusta si aplica
             ]);
 
@@ -212,6 +218,9 @@ class ProcessingActivityController extends Controller
             }
         });
 
+        DashboardCache::forgetForOrg($previousOrgId);
+        DashboardCache::forgetForOrg((int) $activity->org_id);
+
         return redirect()
             ->route('rat.index')
             ->with('exito', 'Processing Activity actualizada correctamente');
@@ -223,6 +232,7 @@ class ProcessingActivityController extends Controller
     public function destroy(string $id)
     {
         $activity = ProcessingActivity::findOrFail($id);
+        $orgId = (int) $activity->org_id;
 
         // Relaciones críticas
         $tieneRelacionesCriticas =
@@ -243,6 +253,8 @@ class ProcessingActivityController extends Controller
             //Eliminar actividad
             $activity->delete();
         });
+
+        DashboardCache::forgetForOrg($orgId);
 
         return redirect()
             ->route('rat.index')

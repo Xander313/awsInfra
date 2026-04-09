@@ -5,6 +5,8 @@ namespace App\Models\Core;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Audit\Audit;
 use App\Models\Audit\Control;
+use App\Models\Risk\Incident;
+use App\Models\Risk\SanctionSimulation;
 
 class Org extends Model
 {
@@ -28,5 +30,20 @@ class Org extends Model
     public function controls()
     {
         return $this->hasMany(Control::class, 'org_id');
+    }
+
+    public function regulatoryProfile()
+    {
+        return $this->hasOne(OrgRegulatoryProfile::class, 'org_id', 'org_id');
+    }
+
+    public function incidents()
+    {
+        return $this->hasMany(Incident::class, 'org_id', 'org_id');
+    }
+
+    public function sanctionSimulations()
+    {
+        return $this->hasMany(SanctionSimulation::class, 'org_id', 'org_id');
     }
 }

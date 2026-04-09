@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Nuevo Curso')
-@section('active_key', 'courses')
+@section('active_key', 'training_courses')
 
 @section('content')
 <div class="flex justify-center mt-10">

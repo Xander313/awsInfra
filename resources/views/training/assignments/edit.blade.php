@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('active_key', 'training_assignments')
+
 @section('content')
 <div class="container d-flex justify-content-center mt-5">
     <div class="col-md-7 col-lg-6">
@@ -38,10 +40,13 @@
 
                     {{-- Fecha vencimiento --}}
                     <div class="form-floating mb-3">
+                        @php
+                            $dueAtValue = old('due_at', optional($assignment->due_at)->format('Y-m-d'));
+                        @endphp
                         <input type="date"
                                name="due_at"
                                class="form-control"
-                               value="{{ $assignment->due_at }}">
+                               value="{{ $dueAtValue }}">
                         <label>Fecha de vencimiento</label>
                     </div>
 
@@ -49,16 +54,16 @@
                     <div class="form-floating mb-4">
                         <select name="status"
                                 class="form-select">
-                            <option value="pending"
-                                @selected($assignment->status === 'pending')>
+                            <option value="PENDING"
+                                @selected(strtoupper((string) $assignment->status) === 'PENDING')>
                                 Pendiente
                             </option>
-                            <option value="completed"
-                                @selected($assignment->status === 'completed')>
+                            <option value="COMPLETED"
+                                @selected(strtoupper((string) $assignment->status) === 'COMPLETED')>
                                 Completado
                             </option>
-                            <option value="expired"
-                                @selected($assignment->status === 'expired')>
+                            <option value="EXPIRED"
+                                @selected(strtoupper((string) $assignment->status) === 'EXPIRED')>
                                 Vencido
                             </option>
                         </select>

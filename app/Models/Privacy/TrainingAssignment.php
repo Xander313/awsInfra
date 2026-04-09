@@ -7,8 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class TrainingAssignment extends Model
 {
     protected $table = 'privacy.training_assignment';
-    protected $primaryKey = 'assignment_id';
+    protected $primaryKey = 'assign_id';
     public $timestamps = false;
+
+    protected $casts = [
+        'assigned_at' => 'date:Y-m-d',
+        'due_at' => 'date:Y-m-d',
+    ];
 
     protected $fillable = [
         'course_id',
@@ -33,6 +38,15 @@ class TrainingAssignment extends Model
             \App\Models\IAM\AppUser::class,
             'user_id',
             'user_id'
+        );
+    }
+
+    public function result()
+    {
+        return $this->hasOne(
+            TrainingResult::class,
+            'assign_id',
+            'assign_id'
         );
     }
 }

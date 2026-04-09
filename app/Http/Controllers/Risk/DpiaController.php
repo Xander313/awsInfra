@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Risk;
 
 use App\Http\Controllers\Controller;
+use App\Support\DashboardCache;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Risk\Dpia;
@@ -64,7 +65,8 @@ class DpiaController extends Controller
 
         // Validación manual (evita problema de Validator con schema.table en "exists")
         $paId = (int) $data['pa_id'];
-        if (!ProcessingActivity::where('pa_id', $paId)->exists()) {
+        $processingActivity = ProcessingActivity::query()->select('pa_id', 'org_id')->find($paId);
+        if (!$processingActivity) {
             return response()->json([
                 'message' => 'pa_id no existe en privacy.processing_activity.',
             ], 422);
@@ -82,6 +84,8 @@ class DpiaController extends Controller
             ]);
         });
 
+        DashboardCache::forgetForOrg((int) $processingActivity->org_id);
+
         return response()->json($dpia, 201);
     }
 
@@ -93,7 +97,7 @@ class DpiaController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $dpia = Dpia::findOrFail($id);
+        $dpia = Dpia::with('processingActivity')->findOrFail($id);
 
         $data = $request->validate([
             'status' => ['sometimes', 'nullable', 'string', 'max:50'],
@@ -101,18 +105,23 @@ class DpiaController extends Controller
         ]);
 
         $dpia->update($data);
+        DashboardCache::forgetForOrg((int) optional($dpia->processingActivity)->org_id);
+
         return response()->json($dpia);
     }
 
     public function destroy(string $id)
     {
-        $dpia = Dpia::findOrFail($id);
+        $dpia = Dpia::with('processingActivity')->findOrFail($id);
+        $orgId = (int) optional($dpia->processingActivity)->org_id;
 
         DB::transaction(function () use ($dpia) {
             // Limpia pivote para evitar errores por FK
             $dpia->risks()->detach();
             $dpia->delete();
         });
+
+        DashboardCache::forgetForOrg($orgId);
 
         return response()->json(['message' => 'DPIA eliminado.']);
     }
@@ -123,7 +132,7 @@ class DpiaController extends Controller
      */
     public function attachRisk(Request $request, string $dpiaId)
     {
-        $dpia = Dpia::findOrFail($dpiaId);
+        $dpia = Dpia::with('processingActivity')->findOrFail($dpiaId);
 
         $data = $request->validate([
             'risk_id' => ['required', 'integer'],
@@ -141,6 +150,8 @@ class DpiaController extends Controller
             $riskId => ['rationale' => $data['rationale'] ?? null],
         ]);
 
+        DashboardCache::forgetForOrg((int) optional($dpia->processingActivity)->org_id);
+
         return response()->json($dpia->load('risks'));
     }
 
@@ -150,7 +161,7 @@ class DpiaController extends Controller
      */
     public function updateRiskRationale(Request $request, string $dpiaId, string $riskId)
     {
-        $dpia = Dpia::findOrFail($dpiaId);
+        $dpia = Dpia::with('processingActivity')->findOrFail($dpiaId);
 
         $data = $request->validate([
             'rationale' => ['nullable', 'string'],
@@ -159,6 +170,8 @@ class DpiaController extends Controller
         $dpia->risks()->updateExistingPivot((int) $riskId, [
             'rationale' => $data['rationale'] ?? null,
         ]);
+
+        DashboardCache::forgetForOrg((int) optional($dpia->processingActivity)->org_id);
 
         return response()->json($dpia->load('risks'));
     }
@@ -169,8 +182,10 @@ class DpiaController extends Controller
      */
     public function detachRisk(string $dpiaId, string $riskId)
     {
-        $dpia = Dpia::findOrFail($dpiaId);
+        $dpia = Dpia::with('processingActivity')->findOrFail($dpiaId);
         $dpia->risks()->detach((int) $riskId);
+
+        DashboardCache::forgetForOrg((int) optional($dpia->processingActivity)->org_id);
 
         return response()->json($dpia->load('risks'));
     }

@@ -16,6 +16,11 @@
             <i class="fa-solid fa-shield-halved"></i>
             Riesgos
         </a>
+        <a href="{{ route('risk.ui.incidents.index') }}"
+           class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            Incidentes
+        </a>
         <a href="{{ url('/risk/ui/dpias') }}"
            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2">
             <i class="fa-solid fa-clipboard-check"></i>
@@ -30,7 +35,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 
 <div class="bg-white border rounded p-4">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <a href="{{ url('/risk/ui/risks') }}" class="border rounded-lg p-4 hover:bg-gray-50">
             <div class="flex items-start gap-3">
                 <div class="w-10 h-10 rounded-lg bg-slate-900 text-white flex items-center justify-center">
@@ -39,6 +44,18 @@
                 <div>
                     <div class="font-semibold">Riesgos</div>
                     <div class="text-sm text-gray-500">CRUD de risk.risk (tipo, estado, descripción)</div>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ route('risk.ui.incidents.index') }}" class="border rounded-lg p-4 hover:bg-gray-50">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-lg bg-amber-600 text-white flex items-center justify-center">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <div class="font-semibold">Incidentes</div>
+                    <div class="text-sm text-gray-500">CRUD base de risk.incident y asociación básica de evidencias</div>
                 </div>
             </div>
         </a>

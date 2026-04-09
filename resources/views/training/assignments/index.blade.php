@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('active_key', 'training_assignments')
+
 @section('content')
 <div class="container mt-5">
 
@@ -28,6 +30,7 @@
                         <th class="text-center">Asignado</th>
                         <th class="text-center">Vence</th>
                         <th class="text-center">Estado</th>
+                        <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
 
@@ -43,22 +46,50 @@
                             </td>
 
                             <td class="text-center">
-                                {{ $assignment->assigned_at ?? '—' }}
+                                {{ $assignment->assigned_at?->format('d/m/Y') ?? '—' }}
                             </td>
 
                             <td class="text-center">
-                                {{ $assignment->due_at ?? '—' }}
+                                {{ $assignment->due_at?->format('d/m/Y') ?? '—' }}
                             </td>
 
                             <td class="text-center">
-                                <span class="badge bg-warning text-dark">
-                                    Pendiente
+                                @php
+                                    $status = strtoupper((string) ($assignment->status ?? 'PENDING'));
+                                    $statusClasses = [
+                                        'PENDING' => 'bg-warning text-dark',
+                                        'COMPLETED' => 'bg-success',
+                                        'EXPIRED' => 'bg-danger',
+                                    ][$status] ?? 'bg-secondary';
+
+                                    $statusLabels = [
+                                        'PENDING' => 'Pendiente',
+                                        'COMPLETED' => 'Completado',
+                                        'EXPIRED' => 'Vencido',
+                                    ];
+                                @endphp
+
+                                <span class="badge {{ $statusClasses }}">
+                                    {{ $statusLabels[$status] ?? ucfirst($assignment->status ?? 'Pendiente') }}
                                 </span>
+                            </td>
+
+                            <td class="text-center">
+                                <div class="d-inline-flex gap-2">
+                                    <a href="{{ route('training.assignments.show', $assignment) }}"
+                                       class="btn btn-sm btn-outline-secondary">
+                                        Ver
+                                    </a>
+                                    <a href="{{ route('training.assignments.edit', $assignment) }}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        Editar
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5"
+                            <td colspan="6"
                                 class="text-center py-4 text-muted">
                                 No existen asignaciones registradas.
                             </td>

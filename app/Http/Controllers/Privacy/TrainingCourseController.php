@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Privacy;
 
 use App\Http\Controllers\Controller;
+use App\Support\DashboardCache;
 use App\Models\Privacy\TrainingCourse;
 use Illuminate\Http\Request;
 
@@ -10,7 +11,8 @@ class TrainingCourseController extends Controller
 {
     public function index()
     {
-        $courses = TrainingCourse::where('org_id', session('org_id'))->get();
+        $orgId = $this->currentOrgId();
+        $courses = TrainingCourse::where('org_id', $orgId)->get();
 
         return view('training.courses.index', compact('courses'));
     }
@@ -22,6 +24,8 @@ class TrainingCourseController extends Controller
 
     public function store(Request $request)
     {
+        $orgId = $this->currentOrgId();
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'renewal_days' => 'nullable|integer|min:1',
@@ -29,11 +33,13 @@ class TrainingCourseController extends Controller
         ]);
 
         TrainingCourse::create([
-            'org_id' => session('org_id'),
+            'org_id' => $orgId,
             'name' => $data['name'],
             'renewal_days' => $data['renewal_days'] ?? null,
             'mandatory_flag' => $request->has('mandatory_flag'),
         ]);
+
+        DashboardCache::forgetCurrentOrg();
 
         return redirect()
             ->route('training.courses.index')
@@ -70,6 +76,8 @@ class TrainingCourseController extends Controller
             'mandatory_flag' => $request->has('mandatory_flag'),
         ]);
 
+        DashboardCache::forgetForOrg((int) $course->org_id);
+
         return redirect()
             ->route('training.courses.index')
             ->with('success', 'Curso actualizado correctamente');
@@ -80,6 +88,7 @@ class TrainingCourseController extends Controller
         $this->authorizeCourse($course);
 
         $course->delete();
+        DashboardCache::forgetForOrg((int) $course->org_id);
 
         return redirect()
             ->route('training.courses.index')
@@ -91,8 +100,17 @@ class TrainingCourseController extends Controller
      */
     private function authorizeCourse(TrainingCourse $course): void
     {
-        if ($course->org_id !== session('org_id')) {
+        if ((int) $course->org_id !== $this->currentOrgId()) {
             abort(403);
         }
+    }
+
+    private function currentOrgId(): int
+    {
+        $orgId = session('org_id');
+
+        abort_if($orgId === null, 403, 'No existe una organización activa en sesión.');
+
+        return (int) $orgId;
     }
 }

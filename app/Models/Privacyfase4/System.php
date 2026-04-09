@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Privacyfase4\DataStore;  
 use App\Models\Core\Org;
 use App\Models\IAM\AppUser; //Cambiar a la ruta de la clase
+use App\Models\Risk\Incident;
 
 class System extends Model
 {
@@ -41,5 +42,10 @@ class System extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(AppUser::class, 'owner_user_id', 'user_id');
+    }
+
+    public function incidents(): HasMany
+    {
+        return $this->hasMany(Incident::class, 'system_id', 'system_id');
     }
 }

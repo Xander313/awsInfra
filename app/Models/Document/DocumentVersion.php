@@ -2,6 +2,7 @@
 
 namespace App\Models\Document;
 
+use App\Models\Risk\IncidentDocument;
 use Illuminate\Database\Eloquent\Model;
 
 class DocumentVersion extends Model
@@ -27,5 +28,10 @@ class DocumentVersion extends Model
     public function document()
     {
         return $this->belongsTo(Document::class, 'doc_id', 'doc_id');
+    }
+
+    public function incidentDocuments()
+    {
+        return $this->hasMany(IncidentDocument::class, 'doc_ver_id', 'doc_ver_id');
     }
 }

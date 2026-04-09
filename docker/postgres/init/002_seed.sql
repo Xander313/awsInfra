@@ -21,6 +21,12 @@ INSERT INTO core.org (org_id, name, ruc, industry)
 VALUES (1, 'Organiz. de Prueba', '9999999999', 'Cooperativa')
 ON CONFLICT DO NOTHING;
 
+SELECT setval(
+    pg_get_serial_sequence('core.org', 'org_id'),
+    COALESCE((SELECT MAX(org_id) FROM core.org), 1),
+    TRUE
+);
+
 
 INSERT INTO privacy.country (iso_code, name) VALUES
 ('EC', 'Ecuador'),

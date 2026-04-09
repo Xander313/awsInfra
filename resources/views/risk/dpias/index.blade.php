@@ -1,4 +1,4 @@
-\
+
 @extends('layouts.app')
 
 @section('title', 'DPIA')
@@ -16,6 +16,12 @@
            class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded flex items-center gap-2">
             <i class="fa-solid fa-shield-halved"></i>
             Riesgos
+        </a>
+
+        <a href="{{ route('risk.ui.incidents.index') }}"
+           class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            Incidentes
         </a>
 
         <button type="button"

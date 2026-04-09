@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('active_key', 'training_courses')
+
 @section('content')
 <div class="container d-flex justify-content-center mt-5">
     <div class="col-md-7 col-lg-6">

@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Editar Resultado')
+@section('active_key', 'training_results')
 
 @section('content')
 <div class="flex justify-center mt-10">

@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('active_key', 'training_courses')
+
 @section('content')
 <div class="container mt-5">
 

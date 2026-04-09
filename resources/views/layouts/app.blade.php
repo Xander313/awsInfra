@@ -61,6 +61,13 @@
     // Navegación base (el equipo puede editar labels/urls sin tocar el layout)
     // Nota: si una ruta aún no existe en el proyecto, Laravel lanzará excepción.
     // Si prefieres "no romper" mientras desarrollan módulos, dime y te lo dejo con Route::has().
+    $activeOrgId = session('org_id');
+    $activeOrg = $activeOrgId
+        ? \App\Models\Core\Org::query()
+            ->select(['org_id', 'name', 'ruc'])
+            ->find($activeOrgId)
+        : null;
+
     $nav = [
         [
             'key' => 'dashboard',
@@ -103,7 +110,9 @@
             'label' => 'RIESGO & AUDITORIA',
             'items' => [
                 ['label' => 'Riesgos', 'href' => url('/risk/ui/risks'), 'key' => 'risks'],
+                ['label' => 'Incidentes', 'href' => route('risk.ui.incidents.index'), 'key' => 'incidents'],
                 ['label' => 'DPIA', 'href' => url('/risk/ui/dpias'), 'key' => 'dpia'],
+                ['label' => 'Cálculo de multas', 'href' => url('/risk/ui/sanctions'), 'key' => 'sanctions'],
                 [
                     'label' => 'Auditoría',
                     'href' => '#',
@@ -121,9 +130,10 @@
             'key' => 'training',
             'label' => 'FORMACIÓN',
             'items' => [
+                ['label' => 'Cursos', 'href' => route('training.courses.index'), 'key' => 'training_courses'],
+                ['label' => 'Asignaciones', 'href' => route('training.assignments.index'), 'key' => 'training_assignments'],
+                ['label' => 'Resultados', 'href' => route('training.results.index'), 'key' => 'training_results'],
                 ['label' => 'Paises', 'href' => route('privacy.country.index'), 'key' => 'country'],
-                // ['label' => 'Asignaciones', 'href' => '/training/assignments', 'key' => 'assignments'],
-                // ['label' => 'Resultados',   'href' => '/training/results',    'key' => 'results'],
             ],
         ],
     ];
@@ -150,9 +160,17 @@
                 </button>
 
 
-                <div class="flex items-center space-x-2">
-                    <h1 class="text-lg font-bold text-gray-900 tracking-tight">SGPD</h1>
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">COAC</span>
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 text-white flex items-center justify-center shadow-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <h1 class="text-lg font-bold text-gray-900 tracking-tight">SGPD</h1>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">COAC</span>
+                    </div>
                 </div>
             </div>
 
@@ -256,17 +274,26 @@
         style="transition: transform 280ms ease-out;">
 
         {{-- Sidebar header --}}
-        <div class="p-5 bg-gradient-to-r from-blue-600 to-blue-800">
-            <div class="flex items-center space-x-3 text-white">
-                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                </div>
-                <div>
-                    <h2 class="font-bold text-lg leading-tight">SGPD COAC</h2>
-                </div>
+        <div class="px-5 py-4 bg-gradient-to-br from-blue-700 via-blue-700 to-blue-900 text-white">
+            <div class="text-[10px] uppercase tracking-[0.24em] text-blue-100/90 font-semibold">
+                Organización activa
+            </div>
+
+            <div class="mt-2 text-base font-bold leading-tight truncate" title="{{ $activeOrg?->name ?? 'Sin organización seleccionada' }}">
+                {{ \Illuminate\Support\Str::limit($activeOrg?->name ?? 'Sin organización seleccionada', 24, '...') }}
+            </div>
+
+            <div class="mt-1 text-xs text-blue-100/90 truncate">
+                {{ $activeOrg?->ruc ? 'RUC: ' . $activeOrg->ruc : 'Sin RUC registrado' }}
+            </div>
+
+            <div class="mt-3">
+                <a href="{{ route('orgs.index') }}"
+                   @click="if (isMobile()) sidebarOpen = false"
+                   class="inline-flex items-center gap-2 text-[11px] font-semibold text-white/90 hover:text-white transition">
+                    <span>{{ $activeOrg ? 'Cambiar organización' : 'Seleccionar organización' }}</span>
+                    <i class="bi bi-chevron-right text-[10px]"></i>
+                </a>
             </div>
         </div>
 
@@ -438,6 +465,8 @@
             openSubmenus: {},
 
             init() {
+                window.sgpdLayout = this;
+
                 // Abrir por defecto la sección que contenga el activeKey
                 const sectionKey = this.findSectionForActiveKey(this.activeKey);
                 if (sectionKey) this.openSections[sectionKey] = true;
@@ -517,7 +546,7 @@
 
                 this.loadingNotifications = true;
                 try {
-                    const response = await fetch('/api/dashboard/alerts', { headers: { 'Accept': 'application/json' } });
+                    const response = await fetch(@json(route('dashboard.api.alerts')), { headers: { 'Accept': 'application/json' } });
                     const alerts = await response.json();
 
                     this.notifications = (alerts || []).map(alert => ({
@@ -659,6 +688,39 @@
             }
         }
     }
+</script>
+
+<script>
+    window.dashboardNotifyUpdate = function () {
+        try {
+            localStorage.setItem('sgpd_dashboard_dirty', String(Date.now()));
+        } catch (_) {
+            // no-op
+        }
+    };
+
+    window.dashboardRefresh = async function ({ reload = false } = {}) {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const response = await fetch(@json(route('dashboard.api.refresh')), {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken ?? '',
+                'Accept': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('No se pudo refrescar el dashboard');
+        }
+
+        window.dashboardNotifyUpdate();
+
+        if (reload) {
+            window.location.reload();
+        }
+
+        return response.json();
+    };
 </script>
 
 {{-- Toasts (SweetAlert) --}}

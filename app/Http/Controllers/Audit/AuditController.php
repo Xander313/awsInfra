@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Audit;
 
 use App\Http\Controllers\Controller;
+use App\Support\DashboardCache;
 use App\Models\Audit\Audit;
 use App\Models\IAM\AppUser;
 use Illuminate\Http\Request;
@@ -62,6 +63,8 @@ class AuditController extends Controller
             'status' => $request->status,
         ]);
 
+        DashboardCache::forgetCurrentOrg();
+
         return redirect()->route('audits.index')
             ->with('success', 'Auditoría creada correctamente.');
     }
@@ -76,6 +79,7 @@ class AuditController extends Controller
 
         $audit->status = $data['status'];
         $audit->save();
+        DashboardCache::forgetForOrg((int) $audit->org_id);
 
         return response()->json([
             'success' => true,
@@ -133,9 +137,10 @@ class AuditController extends Controller
             'status' => $request->status,
         ]);
 
+        DashboardCache::forgetForOrg((int) $audit->org_id);
+
         return redirect()->route('audits.index')
             ->with('success', 'Auditoría actualizada correctamente.');
     }
 }
-
 

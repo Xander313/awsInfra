@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Risk;
 
 use App\Http\Controllers\Controller;
+use App\Support\DashboardCache;
 use Illuminate\Http\Request;
 use App\Models\Risk\Risk;
 use App\Models\Risk\Org;
@@ -11,8 +12,7 @@ class RiskController extends Controller
 {
     public function index(Request $request)
     {
-        // En RAT.zip se hardcodea org_id = 1 para inserts (temporal).
-        $orgId = $request->query('org_id');
+        $orgId = $request->query('org_id', session('org_id'));
 
         $query = Risk::query();
         if ($orgId !== null && $orgId !== '' && $orgId !== 'all') {
@@ -34,10 +34,12 @@ class RiskController extends Controller
         ]);
 
         if (!isset($data['org_id'])) {
-            $data['org_id'] = 1;
+            $data['org_id'] = (int) (session('org_id') ?? 1);
         }
 
         $risk = Risk::create($data);
+        DashboardCache::forgetForOrg((int) $risk->org_id);
+
         return response()->json($risk, 201);
     }
 
@@ -70,6 +72,7 @@ public function show(string $id)
     public function update(Request $request, string $id)
     {
         $risk = Risk::findOrFail($id);
+        $previousOrgId = (int) $risk->org_id;
 
         $data = $request->validate([
             'org_id' => ['sometimes', 'nullable', 'integer'],
@@ -80,12 +83,16 @@ public function show(string $id)
         ]);
 
         $risk->update($data);
+        DashboardCache::forgetForOrg($previousOrgId);
+        DashboardCache::forgetForOrg((int) $risk->org_id);
+
         return response()->json($risk);
     }
 
     public function destroy(string $id)
     {
         $risk = Risk::findOrFail($id);
+        $orgId = (int) $risk->org_id;
 
         // Evita error por FK si el riesgo ya está asociado a algún DPIA
         if ($risk->dpias()->exists()) {
@@ -95,6 +102,8 @@ public function show(string $id)
         }
 
         $risk->delete();
+        DashboardCache::forgetForOrg($orgId);
+
         return response()->json(['message' => 'Riesgo eliminado.']);
     }
 }

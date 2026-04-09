@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\DashboardCache;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -17,7 +18,7 @@ class DashboardController extends Controller
         $orgId = $this->getCurrentOrgId();
         
         // Cache por 5 minutos
-        $data = Cache::remember("dashboard_{$orgId}", 300, function () use ($orgId) {
+        $data = Cache::remember(DashboardCache::key($orgId), 300, function () use ($orgId) {
             return [
                 'kpis' => $this->getKPIs($orgId),
                 'recentActivity' => $this->getRecentActivity($orgId),
@@ -36,10 +37,19 @@ class DashboardController extends Controller
      */
     private function getCurrentOrgId()
     {
-        // Cuando haya login: session('org_id') o Auth::user()->org_id
-        // Por ahora: primera org de la BD o valor por defecto
+        $sessionOrgId = session('org_id');
+        if ($sessionOrgId !== null) {
+            return (int) $sessionOrgId;
+        }
+
+        $userOrgId = data_get(auth()->user(), 'org_id');
+        if ($userOrgId !== null) {
+            return (int) $userOrgId;
+        }
+
+        // Fallback para desarrollo
         try {
-            $org = DB::table('core.org')->first();
+            $org = DB::table('core.org')->orderBy('org_id')->first();
             return $org ? $org->org_id : 1;
         } catch (\Exception $e) {
             return 1; // Valor por defecto para desarrollo
@@ -51,12 +61,17 @@ class DashboardController extends Controller
      */
     private function getKPIs($orgId)
     {
+        $pendingTrainings = $this->getPendingTrainings($orgId);
+        $overdueTrainings = $this->getOverdueTrainings($orgId);
+
         return [
             'processing_activities' => $this->getProcessingActivitiesCount($orgId),
             'dsar_requests' => $this->getDsarRequestsStats($orgId),
             'risks' => $this->getRisksBySeverity($orgId),
             'audits' => $this->getAuditsInProgress($orgId),
-            'trainings' => $this->getPendingTrainings($orgId),
+            'trainings' => $pendingTrainings + $overdueTrainings,
+            'trainings_pending' => $pendingTrainings,
+            'trainings_overdue' => $overdueTrainings,
             'dpia_completed' => $this->getDpiaCompleted($orgId), // NUEVO
             'dsar_by_type' => $this->getDsarByType($orgId) // NUEVO
         ];
@@ -86,9 +101,9 @@ class DashboardController extends Controller
                 ->where('org_id', $orgId)
                 ->selectRaw("
                     COUNT(*) as total,
-                    SUM(CASE WHEN status = 'OPEN' THEN 1 ELSE 0 END) as open_count,
-                    SUM(CASE WHEN status = 'CLOSED' THEN 1 ELSE 0 END) as resolved_count,
-                    SUM(CASE WHEN status = 'OPEN' AND due_at < NOW() THEN 1 ELSE 0 END) as overdue_count
+                    SUM(CASE WHEN UPPER(COALESCE(status, '')) IN ('OPEN', 'PENDING', 'IN_PROGRESS') THEN 1 ELSE 0 END) as open_count,
+                    SUM(CASE WHEN UPPER(COALESCE(status, '')) = 'CLOSED' THEN 1 ELSE 0 END) as resolved_count,
+                    SUM(CASE WHEN UPPER(COALESCE(status, '')) IN ('OPEN', 'PENDING', 'IN_PROGRESS') AND due_at < NOW() THEN 1 ELSE 0 END) as overdue_count
                 ")
                 ->first();
 
@@ -111,8 +126,8 @@ class DashboardController extends Controller
         try {
             $risks = DB::table('risk.risk')
                 ->where('org_id', $orgId)
-                ->select('risk_type as severity', DB::raw('COUNT(*) as count'))
-                ->groupBy('risk_type')
+                ->selectRaw("UPPER(COALESCE(risk_type, '')) as severity, COUNT(*) as count")
+                ->groupByRaw("UPPER(COALESCE(risk_type, ''))")
                 ->orderBy('count', 'desc')
                 ->get()
                 ->mapWithKeys(function ($item) {
@@ -135,7 +150,7 @@ class DashboardController extends Controller
         try {
             return DB::table('audit.audit')
                 ->where('org_id', $orgId)
-                ->whereIn('status', ['PLANNED', 'IN_PROGRESS'])
+                ->whereRaw("UPPER(COALESCE(status, '')) IN ('PLANNED', 'IN_PROGRESS')")
                 ->count();
         } catch (\Exception $e) {
             return 0;
@@ -148,11 +163,16 @@ class DashboardController extends Controller
     private function getPendingTrainings($orgId)
     {
         try {
+            $today = Carbon::today()->toDateString();
+
             return DB::table('privacy.training_assignment as ta')
                 ->join('privacy.training_course as tc', 'ta.course_id', '=', 'tc.course_id')
                 ->where('tc.org_id', $orgId)
-                ->where('ta.status', 'PENDING')
-                ->where('ta.due_at', '>', now())
+                ->whereRaw("UPPER(COALESCE(ta.status, '')) = 'PENDING'")
+                ->where(function ($query) use ($today) {
+                    $query->whereNull('ta.due_at')
+                        ->orWhereDate('ta.due_at', '>=', $today);
+                })
                 ->count();
         } catch (\Exception $e) {
             return 0;
@@ -168,7 +188,7 @@ class DashboardController extends Controller
             return DB::table('risk.dpia as d')
                 ->join('privacy.processing_activity as pa', 'd.pa_id', '=', 'pa.pa_id')
                 ->where('pa.org_id', $orgId)
-                ->where('d.status', 'COMPLETED')
+                ->whereRaw("UPPER(COALESCE(d.status, '')) = 'COMPLETED'")
                 ->count();
         } catch (\Exception $e) {
             return 0;
@@ -183,8 +203,8 @@ class DashboardController extends Controller
         try {
             $types = DB::table('privacy.dsar_request')
                 ->where('org_id', $orgId)
-                ->select('request_type', DB::raw('COUNT(*) as count'))
-                ->groupBy('request_type')
+                ->selectRaw("UPPER(COALESCE(request_type, '')) as request_type, COUNT(*) as count")
+                ->groupByRaw("UPPER(COALESCE(request_type, ''))")
                 ->get()
                 ->mapWithKeys(function ($item) {
                     return [$item->request_type => $item->count];
@@ -283,7 +303,7 @@ class DashboardController extends Controller
             // Alertas de DSAR vencidos
             $dsarAlerts = DB::table('privacy.dsar_request')
                 ->where('org_id', $orgId)
-                ->where('status', 'OPEN')
+                ->whereRaw("UPPER(COALESCE(status, '')) IN ('OPEN', 'PENDING', 'IN_PROGRESS')")
                 ->where('due_at', '<', now())
                 ->select(
                     'dsar_id as id',
@@ -300,7 +320,7 @@ class DashboardController extends Controller
                 ->join('audit.audit_finding as af', 'ca.finding_id', '=', 'af.finding_id')
                 ->join('audit.audit as a', 'af.audit_id', '=', 'a.audit_id')
                 ->where('a.org_id', $orgId)
-                ->where('ca.status', '!=', 'CLOSED')
+                ->whereRaw("UPPER(COALESCE(ca.status, '')) != 'CLOSED'")
                 ->where('ca.due_at', '<', now())
                 ->select(
                     'ca.ca_id as id',
@@ -313,11 +333,18 @@ class DashboardController extends Controller
                 ->get();
 
             // Alertas de capacitaciones
+            $today = Carbon::today()->toDateString();
+
             $trainingAlerts = DB::table('privacy.training_assignment as ta')
                 ->join('privacy.training_course as tc', 'ta.course_id', '=', 'tc.course_id')
                 ->where('tc.org_id', $orgId)
-                ->where('ta.status', 'PENDING')
-                ->where('ta.due_at', '<', now())
+                ->where(function ($query) use ($today) {
+                    $query->whereRaw("UPPER(COALESCE(ta.status, '')) = 'EXPIRED'")
+                        ->orWhere(function ($pending) use ($today) {
+                            $pending->whereRaw("UPPER(COALESCE(ta.status, '')) = 'PENDING'")
+                                ->whereDate('ta.due_at', '<', $today);
+                        });
+                })
                 ->select(
                     'ta.assign_id as id',
                     DB::raw("'Capacitación vencida' as title"),
@@ -363,7 +390,7 @@ class DashboardController extends Controller
                 ->where('org_id', $orgId)
                 ->selectRaw("
                     COUNT(*) as total,
-                    SUM(CASE WHEN status = 'CLOSED' THEN 1 ELSE 0 END) as closed
+                    SUM(CASE WHEN UPPER(COALESCE(status, '')) = 'CLOSED' THEN 1 ELSE 0 END) as closed
                 ")
                 ->first();
 
@@ -383,7 +410,7 @@ class DashboardController extends Controller
                 ->where('org_id', $orgId)
                 ->selectRaw("
                     COUNT(*) as total,
-                    SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed
+                    SUM(CASE WHEN UPPER(COALESCE(status, '')) = 'COMPLETED' THEN 1 ELSE 0 END) as completed
                 ")
                 ->first();
 
@@ -404,7 +431,7 @@ class DashboardController extends Controller
                 ->where('tc.org_id', $orgId)
                 ->selectRaw("
                     COUNT(*) as total,
-                    SUM(CASE WHEN ta.status = 'COMPLETED' THEN 1 ELSE 0 END) as completed
+                    SUM(CASE WHEN UPPER(COALESCE(ta.status, '')) = 'COMPLETED' THEN 1 ELSE 0 END) as completed
                 ")
                 ->first();
 
@@ -475,11 +502,42 @@ class DashboardController extends Controller
         try {
             return DB::table('risk.risk')
                 ->where('org_id', $orgId)
-                ->select('status', DB::raw('COUNT(*) as count'))
-                ->groupBy('status')
+                ->selectRaw("UPPER(COALESCE(status, '')) as status, COUNT(*) as count")
+                ->groupByRaw("UPPER(COALESCE(status, ''))")
                 ->get();
         } catch (\Exception $e) {
             return collect();
+        }
+    }
+
+    private function getRiskStatusSummary($orgId)
+    {
+        try {
+            $statuses = DB::table('risk.risk')
+                ->where('org_id', $orgId)
+                ->selectRaw("UPPER(COALESCE(status, '')) as status, COUNT(*) as count")
+                ->groupByRaw("UPPER(COALESCE(status, ''))")
+                ->get()
+                ->mapWithKeys(function ($item) {
+                    return [$item->status => $item->count];
+                })
+                ->toArray();
+
+            return array_merge([
+                'OPEN' => 0,
+                'IN_REVIEW' => 0,
+                'MITIGATED' => 0,
+                'ACCEPTED' => 0,
+                'CLOSED' => 0,
+            ], $statuses);
+        } catch (\Exception $e) {
+            return [
+                'OPEN' => 0,
+                'IN_REVIEW' => 0,
+                'MITIGATED' => 0,
+                'ACCEPTED' => 0,
+                'CLOSED' => 0,
+            ];
         }
     }
 
@@ -488,8 +546,8 @@ class DashboardController extends Controller
         try {
             return DB::table('audit.audit')
                 ->where('org_id', $orgId)
-                ->select('status', DB::raw('COUNT(*) as count'))
-                ->groupBy('status')
+                ->selectRaw("UPPER(COALESCE(status, '')) as status, COUNT(*) as count")
+                ->groupByRaw("UPPER(COALESCE(status, ''))")
                 ->get();
         } catch (\Exception $e) {
             return collect();
@@ -533,6 +591,7 @@ class DashboardController extends Controller
             ],
             'risks' => [
                 'by_severity' => $this->getRisksBySeverity($orgId),
+                'status_summary' => $this->getRiskStatusSummary($orgId),
                 'critical_risks' => $this->getCriticalRisks($orgId)
             ],
             'audits' => [
@@ -568,7 +627,7 @@ class DashboardController extends Controller
         try {
             return DB::table('risk.risk')
                 ->where('org_id', $orgId)
-                ->where('risk_type', 'HIGH')
+                ->whereRaw("UPPER(COALESCE(risk_type, '')) = 'HIGH'")
                 ->limit(5)
                 ->get();
         } catch (\Exception $e) {
@@ -581,8 +640,8 @@ class DashboardController extends Controller
         try {
             return DB::table('audit.audit')
                 ->where('org_id', $orgId)
-                ->select('status', DB::raw('COUNT(*) as count'))
-                ->groupBy('status')
+                ->selectRaw("UPPER(COALESCE(status, '')) as status, COUNT(*) as count")
+                ->groupByRaw("UPPER(COALESCE(status, ''))")
                 ->get()
                 ->mapWithKeys(function ($item) {
                     return [$item->status => $item->count];
@@ -610,11 +669,18 @@ class DashboardController extends Controller
     private function getOverdueTrainings($orgId)
     {
         try {
+            $today = Carbon::today()->toDateString();
+
             return DB::table('privacy.training_assignment as ta')
                 ->join('privacy.training_course as tc', 'ta.course_id', '=', 'tc.course_id')
                 ->where('tc.org_id', $orgId)
-                ->where('ta.status', 'PENDING')
-                ->where('ta.due_at', '<', now())
+                ->where(function ($query) use ($today) {
+                    $query->whereRaw("UPPER(COALESCE(ta.status, '')) = 'EXPIRED'")
+                        ->orWhere(function ($pending) use ($today) {
+                            $pending->whereRaw("UPPER(COALESCE(ta.status, '')) = 'PENDING'")
+                                ->whereDate('ta.due_at', '<', $today);
+                        });
+                })
                 ->count();
         } catch (\Exception $e) {
             return 0;
@@ -674,6 +740,7 @@ class DashboardController extends Controller
                 $data = [
                     'risks' => [
                         'by_severity' => $this->getRisksBySeverity($orgId),
+                        'status_summary' => $this->getRiskStatusSummary($orgId),
                         'critical_risks' => $this->getCriticalRisks($orgId)
                     ]
                 ];
@@ -703,5 +770,12 @@ class DashboardController extends Controller
         }
         
         return response()->json($data);
+    }
+
+    public function refresh()
+    {
+        DashboardCache::forgetForOrg($this->getCurrentOrgId());
+
+        return response()->json(['ok' => true]);
     }
 }

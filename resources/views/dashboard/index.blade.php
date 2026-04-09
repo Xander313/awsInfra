@@ -142,6 +142,14 @@
                 <div>
                     <p class="text-sm text-gray-500 font-medium mb-1">Capacitaciones</p>
                     <p class="text-3xl font-bold text-gray-900 mt-1">{{ $kpis['trainings'] ?? 0 }}</p>
+                    <div class="mt-3 flex flex-wrap gap-2 text-xs font-medium">
+                        <span class="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-green-700">
+                            Pendientes: {{ $kpis['trainings_pending'] ?? 0 }}
+                        </span>
+                        <span class="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-red-700">
+                            Vencidas: {{ $kpis['trainings_overdue'] ?? 0 }}
+                        </span>
+                    </div>
                 </div>
                 <div class="w-14 h-14 bg-gradient-to-br from-green-50 to-green-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,7 +162,7 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                Pendientes
+                Requieren atención
             </div>
         </div>
     </div>
@@ -855,7 +863,9 @@
 
 async function loadModalData(type) {
     try {
-        const response = await fetch(`/api/dashboard/modal-data/${type}`);
+        const modalDataUrl = @json(route('dashboard.api.modal-data', ['type' => '__TYPE__']))
+            .replace('__TYPE__', encodeURIComponent(type));
+        const response = await fetch(modalDataUrl);
         if (!response.ok) throw new Error('Error al cargar datos');
         return await response.json();
     } catch (error) {
@@ -1067,59 +1077,118 @@ async function setupDsarModal(title, subtitle, icon, body, actionBtn, actionText
 
 }
 
-async function setupRisksModal(title, subtitle, icon, body, actionBtn, actionText) {
+function getRiskSeverityLabel(value) {
+    const labels = {
+        HIGH: 'Alto',
+        MEDIUM: 'Medio',
+        LOW: 'Bajo'
+    };
+
+    return labels[String(value ?? '').toUpperCase()] || (value || '-');
+}
+
+function getRiskStatusLabel(value) {
+    const labels = {
+        OPEN: 'Abierto',
+        IN_REVIEW: 'En revisión',
+        MITIGATED: 'Mitigado',
+        ACCEPTED: 'Aceptado',
+        CLOSED: 'Cerrado'
+    };
+
+    return labels[String(value ?? '').toUpperCase()] || (value || '-');
+}
+
+function getRiskStatusCardMeta(status) {
+    const meta = {
+        OPEN: { label: 'Abiertos', classes: 'bg-red-50 text-red-700 border-red-100' },
+        IN_REVIEW: { label: 'En revisión', classes: 'bg-amber-50 text-amber-700 border-amber-100' },
+        MITIGATED: { label: 'Mitigados', classes: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+        ACCEPTED: { label: 'Aceptados', classes: 'bg-sky-50 text-sky-700 border-sky-100' },
+        CLOSED: { label: 'Cerrados', classes: 'bg-slate-50 text-slate-700 border-slate-100' }
+    };
+
+    return meta[String(status ?? '').toUpperCase()] || { label: status || 'Sin estado', classes: 'bg-gray-50 text-gray-700 border-gray-100' };
+}
+
+function renderRiskStatusCards(statusSummary) {
+    const statuses = ['OPEN', 'IN_REVIEW', 'MITIGATED', 'ACCEPTED', 'CLOSED'];
+    const total = statuses.reduce((sum, status) => sum + Number(statusSummary?.[status] || 0), 0);
+
+    return statuses.map((status) => {
+        const meta = getRiskStatusCardMeta(status);
+        const count = Number(statusSummary?.[status] || 0);
+        const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+
+        return `
+            <div class="rounded-xl border p-4 ${meta.classes}">
+                <p class="text-sm font-medium">${meta.label}</p>
+                <p class="text-2xl font-bold text-gray-900 mt-2">${count}</p>
+                <div class="text-xs mt-1">${percentage}% del total</div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function renderRisksModal(title, subtitle, icon, body, actionBtn, actionText) {
     title.textContent = 'Gestión de Riesgos';
-    subtitle.textContent = 'Riesgos identificados y su nivel de severidad';
+    subtitle.textContent = 'Riesgos identificados, su severidad y estado actual';
     icon.innerHTML = `<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
     </svg>`;
     icon.className = 'w-12 h-12 bg-gradient-to-br from-red-50 to-red-100 rounded-xl flex items-center justify-center';
-    
-    // Mostrar loading
+
     body.innerHTML = `
         <div class="flex justify-center items-center py-12">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
         </div>
     `;
-    
-    // Cargar datos desde API
+
     const data = await loadModalData('risks');
-    
+
     if (data && data.risks) {
-        const highRisks = data.risks.by_severity?.HIGH || 0;
-        const mediumRisks = data.risks.by_severity?.MEDIUM || 0;
-        const lowRisks = data.risks.by_severity?.LOW || 0;
+        const highRisks = Number(data.risks.by_severity?.HIGH || 0);
+        const mediumRisks = Number(data.risks.by_severity?.MEDIUM || 0);
+        const lowRisks = Number(data.risks.by_severity?.LOW || 0);
         const totalRisks = highRisks + mediumRisks + lowRisks;
         const criticalRisks = data.risks.critical_risks || [];
-        
+        const statusSummary = data.risks.status_summary || {};
+
         body.innerHTML = `
             <div class="space-y-6">
-                <div class="grid grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="bg-red-50 p-4 rounded-xl">
-                        <p class="text-sm text-red-600 font-medium">Alto</p>
+                        <p class="text-sm text-red-600 font-medium">${getRiskSeverityLabel('HIGH')}</p>
                         <p class="text-3xl font-bold text-gray-900 mt-2">${highRisks}</p>
                         <div class="text-xs text-red-500 mt-1">
-                            ${totalRisks > 0 ? Math.round((highRisks/totalRisks)*100) : 0}% del total
+                            ${totalRisks > 0 ? Math.round((highRisks / totalRisks) * 100) : 0}% del total
                         </div>
                     </div>
                     <div class="bg-yellow-50 p-4 rounded-xl">
-                        <p class="text-sm text-yellow-600 font-medium">Medio</p>
+                        <p class="text-sm text-yellow-600 font-medium">${getRiskSeverityLabel('MEDIUM')}</p>
                         <p class="text-3xl font-bold text-gray-900 mt-2">${mediumRisks}</p>
                         <div class="text-xs text-yellow-500 mt-1">
-                            ${totalRisks > 0 ? Math.round((mediumRisks/totalRisks)*100) : 0}% del total
+                            ${totalRisks > 0 ? Math.round((mediumRisks / totalRisks) * 100) : 0}% del total
                         </div>
                     </div>
                     <div class="bg-blue-50 p-4 rounded-xl">
-                        <p class="text-sm text-blue-600 font-medium">Bajo</p>
+                        <p class="text-sm text-blue-600 font-medium">${getRiskSeverityLabel('LOW')}</p>
                         <p class="text-3xl font-bold text-gray-900 mt-2">${lowRisks}</p>
                         <div class="text-xs text-blue-500 mt-1">
-                            ${totalRisks > 0 ? Math.round((lowRisks/totalRisks)*100) : 0}% del total
+                            ${totalRisks > 0 ? Math.round((lowRisks / totalRisks) * 100) : 0}% del total
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="space-y-4">
-                    <h3 class="font-semibold text-gray-900">${highRisks > 0 ? 'Riesgos Críticos' : 'Estado de Riesgos'}</h3>
+                    <h3 class="font-semibold text-gray-900">Estado de los riesgos</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                        ${renderRiskStatusCards(statusSummary)}
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h3 class="font-semibold text-gray-900">${highRisks > 0 ? 'Riesgos que requieren atención inmediata' : 'Situación actual de riesgos'}</h3>
                     <div class="space-y-3">
                         ${highRisks > 0 ? `
                             <div class="p-4 bg-red-50 border border-red-200 rounded-xl">
@@ -1128,13 +1197,17 @@ async function setupRisksModal(title, subtitle, icon, body, actionBtn, actionTex
                                     <p class="font-medium text-gray-900">${highRisks} riesgos críticos identificados</p>
                                 </div>
                                 <p class="text-sm text-gray-600 mt-2">Estos riesgos requieren atención inmediata y deben ser tratados en los próximos 7 días.</p>
-                                
+
                                 ${criticalRisks.length > 0 ? `
                                     <div class="mt-4 space-y-2">
                                         ${criticalRisks.slice(0, 3).map(risk => `
                                             <div class="p-3 bg-white rounded-lg border border-red-100">
                                                 <p class="font-medium text-gray-900">${risk.name || 'Riesgo sin nombre'}</p>
-                                                <p class="text-sm text-gray-600 mt-1 truncate">${risk.description || 'Sin descripción'}</p>
+                                                <div class="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                                                    <span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700">${getRiskSeverityLabel(risk.risk_type)}</span>
+                                                    <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">${getRiskStatusLabel(risk.status)}</span>
+                                                </div>
+                                                <p class="text-sm text-gray-600 mt-2 truncate">${risk.description || 'Sin descripción'}</p>
                                             </div>
                                         `).join('')}
                                     </div>
@@ -1146,7 +1219,7 @@ async function setupRisksModal(title, subtitle, icon, body, actionBtn, actionTex
                                     <div class="w-3 h-3 bg-green-500 rounded-full"></div>
                                     <p class="font-medium text-gray-900">No hay riesgos críticos identificados</p>
                                 </div>
-                                <p class="text-sm text-gray-600 mt-2">Excelente gestión de riesgos en el sistema. Se recomienda mantener revisiones periódicas.</p>
+                                <p class="text-sm text-gray-600 mt-2">La distribución actual no muestra riesgos altos. Mantén el seguimiento periódico de los estados abiertos y en revisión.</p>
                             </div>
                         `}
                     </div>
@@ -1164,13 +1237,17 @@ async function setupRisksModal(title, subtitle, icon, body, actionBtn, actionTex
             </div>
         `;
     }
-    
+
     actionText.textContent = 'Ver gestión de riesgos';
     actionBtn.onclick = () => {
-    closeModal();
-    showNotification('Redirigiendo a gestión de riesgos...', 'info');
-    window.location.href = '/risk/ui'; // Cambiar a la ruta correcta
-};
+        closeModal();
+        showNotification('Redirigiendo a gestión de riesgos...', 'info');
+        window.location.href = '/risk/ui/risks';
+    };
+}
+
+async function setupRisksModal(title, subtitle, icon, body, actionBtn, actionText) {
+    return renderRisksModal(title, subtitle, icon, body, actionBtn, actionText);
 }
 
 
@@ -1261,12 +1338,12 @@ async function setupTrainingsModal(title, subtitle, icon, body, actionBtn, actio
         `;
     }
     
-    actionText.textContent = 'Gestionar capacitaciones aqui es';
+    actionText.textContent = 'Ver asignaciones';
     actionBtn.onclick = () => {
-    closeModal();
-    showNotification('Redirigiendo a capacitaciones...', 'info');
-    window.location.href = '/audit/audits'; // Cambiar a la ruta correcta (o donde estén las capacitaciones)
-};
+        closeModal();
+        showNotification('Redirigiendo a capacitaciones...', 'info');
+        window.location.href = @json(route('training.assignments.index'));
+    };
 }
 
 // Actualiza la función loadModalContent para que sea async
@@ -1392,7 +1469,7 @@ function setupDsarModal(title, subtitle, icon, body, actionBtn, actionText) {
 
 
 function setupAuditsModal(title, subtitle, icon, body, actionBtn, actionText) {
-    title.textContent = 'Auditorías del Sistema aqui es';
+    title.textContent = 'Auditorías del Sistema';
     subtitle.textContent = 'Estado y seguimiento de auditorías';
     icon.innerHTML = `<svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -1468,7 +1545,7 @@ function setupAuditsModal(title, subtitle, icon, body, actionBtn, actionText) {
     actionBtn.onclick = () => {
         closeModal();
         showNotification('Redirigiendo a auditorías...', 'info');
-        window.location.href = '/audit/audits';
+        window.location.href = @json(route('audits.index'));
     };
 }
 
@@ -1551,75 +1628,8 @@ function setupAuditsModal(title, subtitle, icon, body, actionBtn, actionText) {
         };
     }
 
-    function setupRisksModal(title, subtitle, icon, body, actionBtn, actionText) {
-        title.textContent = 'Gestión de Riesgos';
-        subtitle.textContent = 'Riesgos identificados y su nivel de severidad';
-        icon.innerHTML = `<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-        </svg>`;
-        icon.className = 'w-12 h-12 bg-gradient-to-br from-red-50 to-red-100 rounded-xl flex items-center justify-center';
-        
-        const highRisks = {{ $kpis['risks']['HIGH'] ?? 0 }};
-        const mediumRisks = {{ $kpis['risks']['MEDIUM'] ?? 0 }};
-        const lowRisks = {{ $kpis['risks']['LOW'] ?? 0 }};
-        const totalRisks = highRisks + mediumRisks + lowRisks;
-        
-        body.innerHTML = `
-            <div class="space-y-6">
-                <div class="grid grid-cols-3 gap-4">
-                    <div class="bg-red-50 p-4 rounded-xl">
-                        <p class="text-sm text-red-600 font-medium">Alto</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2">${highRisks}</p>
-                        <div class="text-xs text-red-500 mt-1">
-                            ${totalRisks > 0 ? Math.round((highRisks/totalRisks)*100) : 0}% del total
-                        </div>
-                    </div>
-                    <div class="bg-yellow-50 p-4 rounded-xl">
-                        <p class="text-sm text-yellow-600 font-medium">Medio</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2">${mediumRisks}</p>
-                        <div class="text-xs text-yellow-500 mt-1">
-                            ${totalRisks > 0 ? Math.round((mediumRisks/totalRisks)*100) : 0}% del total
-                        </div>
-                    </div>
-                    <div class="bg-blue-50 p-4 rounded-xl">
-                        <p class="text-sm text-blue-600 font-medium">Bajo</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2">${lowRisks}</p>
-                        <div class="text-xs text-blue-500 mt-1">
-                            ${totalRisks > 0 ? Math.round((lowRisks/totalRisks)*100) : 0}% del total
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="space-y-4">
-                    <h3 class="font-semibold text-gray-900">Riesgos que requieren atención inmediata</h3>
-                    <div class="space-y-3">
-                        ${highRisks > 0 ? `
-                            <div class="p-4 bg-red-50 border border-red-200 rounded-xl">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                                    <p class="font-medium text-gray-900">${highRisks} riesgos críticos</p>
-                                </div>
-                                <p class="text-sm text-gray-600 mt-2">Estos riesgos requieren atención inmediata y deben ser tratados en los próximos 7 días.</p>
-                            </div>
-                        ` : `
-                            <div class="p-4 bg-green-50 border border-green-200 rounded-xl">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-                                    <p class="font-medium text-gray-900">No hay riesgos críticos</p>
-                                </div>
-                                <p class="text-sm text-gray-600 mt-2">Excelente gestión de riesgos en el sistema.</p>
-                            </div>
-                        `}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        actionText.textContent = 'Ver gestión de riesgos';
-        actionBtn.onclick = () => {
-            closeModal();
-            window.location.href = '/risk/ui/risks';
-        };
+    async function setupRisksModal(title, subtitle, icon, body, actionBtn, actionText) {
+        return renderRisksModal(title, subtitle, icon, body, actionBtn, actionText);
     }
 
     function setupAllAlertsModal(title, subtitle, icon, body, actionBtn, actionText) {
@@ -2171,6 +2181,12 @@ async function saveAlertAsReadToServer(alertId) {
     // ============================================
 
     document.addEventListener('DOMContentLoaded', () => {
+        const wasUpdated = localStorage.getItem('sgpd_dashboard_dirty');
+        if (wasUpdated) {
+            localStorage.removeItem('sgpd_dashboard_dirty');
+            showNotification('Dashboard sincronizado con los últimos cambios', 'success');
+        }
+
         // Filtrar alertas ya leídas
         filterReadAlertsOnLoad();
         
@@ -2194,15 +2210,18 @@ async function saveAlertAsReadToServer(alertId) {
         });
         
         // Botón de refrescar
-        document.getElementById('refreshDashboard').addEventListener('click', () => {
+        document.getElementById('refreshDashboard').addEventListener('click', async () => {
             const icon = document.getElementById('refreshIcon');
             icon.classList.add('animate-spin');
             showNotification('Actualizando datos del dashboard...', 'info');
-            
-            setTimeout(() => {
+
+            try {
+                await window.dashboardRefresh({ reload: true });
+            } catch (error) {
                 icon.classList.remove('animate-spin');
-                showNotification('Dashboard actualizado correctamente', 'success');
-            }, 1000);
+                console.error('Error refrescando dashboard:', error);
+                showNotification('No se pudo actualizar el dashboard', 'error');
+            }
         });
         
         // Limpiar alertas leídas después de 24 horas

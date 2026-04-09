@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Core;
 
 use App\Http\Controllers\Controller;
 use App\Models\Core\Org;
+use App\Http\Requests\Core\OrgRegulatoryProfileRequest;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Database\QueryException;
@@ -60,6 +61,8 @@ class OrgController extends Controller
      */
     public function show(Org $org)
     {
+        $org->load('regulatoryProfile.updatedBy');
+
         return view('core.org.show', compact('org'));
     }
 
@@ -69,6 +72,51 @@ class OrgController extends Controller
     public function edit(Org $org)
     {
         return view('core.org.edit', compact('org'));
+    }
+
+    /**
+     * Formulario de perfil regulatorio/económico
+     */
+    public function editRegulatoryProfile(Org $org)
+    {
+        $org->load('regulatoryProfile.updatedBy');
+
+        return view('core.org.regulatory-profile', [
+            'org' => $org,
+            'profile' => $org->regulatoryProfile,
+        ]);
+    }
+
+    /**
+     * Crear o actualizar perfil regulatorio/económico
+     */
+    public function updateRegulatoryProfile(OrgRegulatoryProfileRequest $request, Org $org)
+    {
+        $data = $request->validated();
+
+        if ($data['entity_type'] === 'privada') {
+            $data['sbu_reference'] = null;
+        }
+
+        if ($data['entity_type'] === 'publica') {
+            $data['business_volume_usd'] = null;
+        }
+
+        $data['updated_by_user_id'] = optional($request->user())->user_id;
+
+        $profile = $org->regulatoryProfile;
+
+        if ($profile) {
+            $profile->update($data);
+            $message = 'Perfil regulatorio/económico actualizado correctamente.';
+        } else {
+            $org->regulatoryProfile()->create($data);
+            $message = 'Perfil regulatorio/económico configurado correctamente.';
+        }
+
+        return redirect()
+            ->route('orgs.show', $org)
+            ->with('success', $message);
     }
 
     /**

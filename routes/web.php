@@ -35,10 +35,14 @@ use App\Http\Controllers\Privacyfase4\RecipientController;
 
 use App\Http\Controllers\Document\DocumentController;
 use App\Http\Controllers\Privacy\CountryController;
+use App\Http\Controllers\Privacy\TrainingCourseController;
+use App\Http\Controllers\Privacy\TrainingAssignmentController;
+use App\Http\Controllers\Privacy\TrainingResultController;
 
 
 
 use App\Http\Middleware\SingleTab;
+use App\Http\Middleware\EnsureOrgSelected;
 
 
 Route::get('/', function () {
@@ -139,6 +143,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/panel/kpis', [DashboardController::class, 'apiKPIs'])->name('dashboard.api.kpis');
     Route::get('/api/panel/alerts', [DashboardController::class, 'apiAlerts'])->name('dashboard.api.alerts');
     Route::get('/api/panel/activity', [DashboardController::class, 'apiRecentActivity'])->name('dashboard.api.activity');
+    Route::post('/api/panel/refresh', [DashboardController::class, 'refresh'])->name('dashboard.api.refresh');
 
     // ✅ NUEVA RUTA AGREGADA (SOLO ESTA)
     Route::get('/api/panel/modal-data/{type}', [DashboardController::class, 'apiModalData'])->name('dashboard.api.modal-data');
@@ -161,6 +166,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/', [OrgController::class, 'store'])->name('orgs.store');
 
         Route::get('/{org}', [OrgController::class, 'show'])->name('orgs.show');
+        Route::get('/{org}/perfil-regulatorio', [OrgController::class, 'editRegulatoryProfile'])->name('orgs.regulatory-profile.edit');
+        Route::put('/{org}/perfil-regulatorio', [OrgController::class, 'updateRegulatoryProfile'])->name('orgs.regulatory-profile.update');
         Route::get('/{org}/editar', [OrgController::class, 'edit'])->name('orgs.edit');
         Route::put('/{org}', [OrgController::class, 'update'])->name('orgs.update');
         Route::delete('/{org}', [OrgController::class, 'destroy'])->name('orgs.destroy');
@@ -193,6 +200,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Risk routes
     require __DIR__.'/risk.php';
+    require __DIR__.'/sanctions.php';
 
     // Audit Routes
     Route::prefix('auditorias')->group(function(){
@@ -376,6 +384,36 @@ Route::middleware(['auth'])->group(function () {
     // Country
     Route::prefix('privacy')->name('privacy.')->group(function() {
         Route::resource('country', CountryController::class);
+    });
+
+    Route::middleware([EnsureOrgSelected::class])->prefix('capacitaciones')->name('training.')->group(function () {
+        Route::prefix('cursos')->name('courses.')->group(function () {
+            Route::get('/', [TrainingCourseController::class, 'index'])->name('index');
+            Route::get('/crear', [TrainingCourseController::class, 'create'])->name('create');
+            Route::post('/', [TrainingCourseController::class, 'store'])->name('store');
+            Route::get('/{course}', [TrainingCourseController::class, 'show'])->name('show');
+            Route::get('/{course}/editar', [TrainingCourseController::class, 'edit'])->name('edit');
+            Route::put('/{course}', [TrainingCourseController::class, 'update'])->name('update');
+            Route::delete('/{course}', [TrainingCourseController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('asignaciones')->name('assignments.')->group(function () {
+            Route::get('/', [TrainingAssignmentController::class, 'index'])->name('index');
+            Route::get('/crear', [TrainingAssignmentController::class, 'create'])->name('create');
+            Route::post('/', [TrainingAssignmentController::class, 'store'])->name('store');
+            Route::get('/{assignment}', [TrainingAssignmentController::class, 'show'])->name('show');
+            Route::get('/{assignment}/editar', [TrainingAssignmentController::class, 'edit'])->name('edit');
+            Route::put('/{assignment}', [TrainingAssignmentController::class, 'update'])->name('update');
+        });
+
+        Route::prefix('resultados')->name('results.')->group(function () {
+            Route::get('/', [TrainingResultController::class, 'index'])->name('index');
+            Route::get('/crear/{assignment}', [TrainingResultController::class, 'create'])->name('create');
+            Route::post('/{assignment}', [TrainingResultController::class, 'store'])->name('store');
+            Route::get('/{result}', [TrainingResultController::class, 'show'])->name('show');
+            Route::get('/{result}/editar', [TrainingResultController::class, 'edit'])->name('edit');
+            Route::put('/{result}', [TrainingResultController::class, 'update'])->name('update');
+        });
     });
     });
 });

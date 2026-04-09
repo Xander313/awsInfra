@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Audit;
 
 use App\Http\Controllers\Controller;
+use App\Support\DashboardCache;
 use App\Models\Audit\CorrectiveAction;
 use App\Models\Audit\AuditFinding;
 use App\Models\IAM\AppUser;
@@ -77,6 +78,8 @@ class CorrectiveActionController extends Controller
             'outcome' => $request->outcome,
         ]);
 
+        DashboardCache::forgetCurrentOrg();
+
         return redirect()->route('corrective_actions.index')
             ->with('success', 'Acción correctiva creada correctamente.');
     }
@@ -129,6 +132,8 @@ class CorrectiveActionController extends Controller
             'outcome',
         ]));
 
+        DashboardCache::forgetCurrentOrg();
+
         return redirect()->route('corrective_actions.index')
             ->with('success', 'Acción correctiva actualizada correctamente.');
     }
@@ -141,6 +146,8 @@ class CorrectiveActionController extends Controller
             'status' => 'closed', // 👈 corregido: debe coincidir con tus valores reales
             'closed_at' => now(),
         ]);
+
+        DashboardCache::forgetCurrentOrg();
 
         return redirect()->route('corrective_actions.index')
             ->with('success', 'Acción correctiva cerrada correctamente.');
@@ -161,6 +168,7 @@ class CorrectiveActionController extends Controller
         }
 
         $action->save();
+        DashboardCache::forgetCurrentOrg();
 
         return response()->json([
             'success' => true,

@@ -57,9 +57,14 @@
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center">
-                        <a href="{{ route('orgs.index') }}" class="btn btn-outline-secondary">
-                            Cancelar
-                        </a>
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('orgs.show', $org) }}" class="btn btn-outline-secondary">
+                                Volver
+                            </a>
+                            <a href="{{ route('orgs.regulatory-profile.edit', $org) }}" class="btn btn-outline-primary">
+                                Perfil regulatorio
+                            </a>
+                        </div>
 
                         <button type="submit" class="btn btn-warning px-4">
                             <i class="bi bi-check-circle"></i> Actualizar

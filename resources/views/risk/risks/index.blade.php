@@ -1,4 +1,4 @@
-\
+
 @extends('layouts.app')
 
 @section('title', 'Riesgos')
@@ -11,6 +11,12 @@
     </div>
 
     <div class="flex gap-2">
+        <a href="{{ route('risk.ui.incidents.index') }}"
+           class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 px-4 py-2 rounded flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            Ir a Incidentes
+        </a>
+
         <a href="{{ url('/risk/ui/dpias') }}"
            class="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-100 px-4 py-2 rounded flex items-center gap-2">
             <i class="fa-solid fa-clipboard-check"></i>
@@ -43,7 +49,7 @@
                 <label class="text-xs text-gray-500">Buscar</label>
                 <input type="text"
                        x-model="search"
-                       placeholder="Nombre / tipo / estado..."
+                       placeholder="Nombre / severidad / estado..."
                        class="mt-1 w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
 
@@ -91,7 +97,7 @@
                 <tr>
                     <th class="text-left px-4 py-3">ID</th>
                     <th class="text-left px-4 py-3">Nombre</th>
-                    <th class="text-left px-4 py-3">Tipo</th>
+                    <th class="text-left px-4 py-3">Severidad</th>
                     <th class="text-left px-4 py-3">Estado</th>
                     <th class="text-left px-4 py-3">Org</th>
                     <th class="text-right px-4 py-3">Acciones</th>
@@ -110,8 +116,16 @@
                     <tr class="border-t hover:bg-gray-50">
                         <td class="px-4 py-3 font-mono" x-text="r.risk_id"></td>
                         <td class="px-4 py-3" x-text="r.name || '-'"></td>
-                        <td class="px-4 py-3" x-text="r.risk_type || '-'"></td>
-                        <td class="px-4 py-3" x-text="r.status || '-'"></td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+                                  :class="severityBadgeClass(r.risk_type)"
+                                  x-text="severityLabel(r.risk_type)"></span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+                                  :class="statusBadgeClass(r.status)"
+                                  x-text="statusLabel(r.status)"></span>
+                        </td>
                         <td class="px-4 py-3" x-text="orgName(r.org_id)"></td>
                         <td class="px-4 py-3 text-right">
                             <div class="flex justify-end gap-2">
@@ -161,7 +175,7 @@
                             <label class="text-xs text-gray-500">Organización</label>
                             <select x-model="form.org_id"
                                     class="mt-1 w-full border rounded px-3 py-2 text-sm bg-white">
-                                <option value="">(usar 1 por defecto)</option>
+                                <option value="">(usar organización activa)</option>
                                 <template x-for="o in orgs" :key="o.org_id">
                                     <option :value="String(o.org_id)" x-text="`(${o.org_id}) ${o.name}`"></option>
                                 </template>
@@ -169,21 +183,21 @@
                         </div>
 
                         <div>
-                            <label class="text-xs text-gray-500">Tipo (risk_type)</label>
+                            <label class="text-xs text-gray-500">Severidad</label>
                             <select x-model="form.risk_type"
                                     class="mt-1 w-full border rounded px-3 py-2 text-sm bg-white">
-                                <template x-for="t in riskTypes" :key="t">
-                                    <option :value="t" x-text="t"></option>
+                                <template x-for="t in riskTypes" :key="t.value">
+                                    <option :value="t.value" x-text="t.label"></option>
                                 </template>
                             </select>
                         </div>
 
                         <div>
-                            <label class="text-xs text-gray-500">Estado (status)</label>
+                            <label class="text-xs text-gray-500">Estado</label>
                             <select x-model="form.status"
                                     class="mt-1 w-full border rounded px-3 py-2 text-sm bg-white">
-                                <template x-for="s in riskStatuses" :key="s">
-                                    <option :value="s" x-text="s"></option>
+                                <template x-for="s in riskStatuses" :key="s.value">
+                                    <option :value="s.value" x-text="s.label"></option>
                                 </template>
                             </select>
                         </div>
@@ -273,8 +287,18 @@ function csrf() {
 
             // meta
             orgs: [],
-            riskTypes: ['SECURITY', 'PRIVACY', 'OPERATIONAL', 'LEGAL', 'COMPLIANCE', 'REPUTATIONAL', 'FINANCIAL', 'TECHNOLOGY'],
-            riskStatuses: ['OPEN', 'IN_REVIEW', 'MITIGATED', 'ACCEPTED', 'CLOSED'],
+            riskTypes: [
+                { value: 'HIGH', label: 'Alto' },
+                { value: 'MEDIUM', label: 'Medio' },
+                { value: 'LOW', label: 'Bajo' }
+            ],
+            riskStatuses: [
+                { value: 'OPEN', label: 'Abierto' },
+                { value: 'IN_REVIEW', label: 'En revisión' },
+                { value: 'MITIGATED', label: 'Mitigado' },
+                { value: 'ACCEPTED', label: 'Aceptado' },
+                { value: 'CLOSED', label: 'Cerrado' }
+            ],
 
             // data
             risks: [],
@@ -282,7 +306,7 @@ function csrf() {
             // modal
             modalOpen: false,
             mode: 'create',
-            form: { risk_id: null, name: '', org_id: '', risk_type: 'SECURITY', status: 'OPEN', description: '' },
+            form: { risk_id: null, name: '', org_id: '', risk_type: 'HIGH', status: 'OPEN', description: '' },
 
             async init() {
                 window.__riskUI = this;
@@ -303,6 +327,46 @@ function csrf() {
                 return o ? o.name : (id ? `Org ${id}` : '-');
             },
 
+            severityLabel(value) {
+                const labels = {
+                    HIGH: 'Alto',
+                    MEDIUM: 'Medio',
+                    LOW: 'Bajo'
+                };
+
+                return labels[String(value ?? '').toUpperCase()] || (value || '-');
+            },
+
+            statusLabel(value) {
+                const labels = {
+                    OPEN: 'Abierto',
+                    IN_REVIEW: 'En revisión',
+                    MITIGATED: 'Mitigado',
+                    ACCEPTED: 'Aceptado',
+                    CLOSED: 'Cerrado'
+                };
+
+                return labels[String(value ?? '').toUpperCase()] || (value || '-');
+            },
+
+            severityBadgeClass(value) {
+                return {
+                    HIGH: 'bg-red-100 text-red-700',
+                    MEDIUM: 'bg-yellow-100 text-yellow-700',
+                    LOW: 'bg-blue-100 text-blue-700'
+                }[String(value ?? '').toUpperCase()] || 'bg-gray-100 text-gray-700';
+            },
+
+            statusBadgeClass(value) {
+                return {
+                    OPEN: 'bg-red-100 text-red-700',
+                    IN_REVIEW: 'bg-amber-100 text-amber-700',
+                    MITIGATED: 'bg-emerald-100 text-emerald-700',
+                    ACCEPTED: 'bg-sky-100 text-sky-700',
+                    CLOSED: 'bg-slate-100 text-slate-700'
+                }[String(value ?? '').toUpperCase()] || 'bg-gray-100 text-gray-700';
+            },
+
             get filteredRisks() {
                 const q = (this.search || '').trim().toLowerCase();
                 if (!q) return this.risks;
@@ -315,6 +379,8 @@ function csrf() {
                         r.description,
                         r.risk_type,
                         r.status,
+                        this.severityLabel(r.risk_type),
+                        this.statusLabel(r.status),
                         orgLabel
                     ].some(v => String(v ?? '').toLowerCase().includes(q));
                 });
@@ -336,7 +402,12 @@ function csrf() {
                     if (this.orgId && this.orgId !== 'all') {
                         url += `?org_id=${encodeURIComponent(this.orgId)}`;
                     }
-                    this.risks = await api(url);
+                    const risks = await api(url);
+                    this.risks = (risks || []).map((risk) => ({
+                        ...risk,
+                        risk_type: risk?.risk_type ? String(risk.risk_type).toUpperCase() : risk?.risk_type,
+                        status: risk?.status ? String(risk.status).toUpperCase() : risk?.status,
+                    }));
                 } catch (e) {
                     notify('info', e.message, 'Error');
                 } finally {
@@ -350,7 +421,7 @@ function csrf() {
                     risk_id: null,
                     name: '',
                     org_id: (this.orgId && this.orgId !== 'all') ? this.orgId : '',
-                    risk_type: 'SECURITY',
+                    risk_type: 'HIGH',
                     status: 'OPEN',
                     description: ''
                 };
@@ -363,7 +434,7 @@ function csrf() {
                     risk_id: r.risk_id,
                     name: r.name || '',
                     org_id: r.org_id ? String(r.org_id) : '',
-                    risk_type: r.risk_type || 'SECURITY',
+                    risk_type: r.risk_type || 'HIGH',
                     status: r.status || 'OPEN',
                     description: r.description || ''
                 };
